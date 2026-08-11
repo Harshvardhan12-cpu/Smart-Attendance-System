@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OTP Verification | Smart Attendance ERP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="login.html">
+          <span class="brand-mark"><i class="bi bi-shield-check"></i></span>
+          <span>Smart Attendance ERP</span>
+        </a>
+        <nav class="topbar-nav" aria-label="Quick links">
+          <a href="#">Help</a>
+          <a href="#">Contact Support</a>
+          <a href="#" class="lang-pill">EN</a>
+        </nav>
+      </header>
+
+      <main class="auth-layout">
+        <section class="hero-panel" aria-label="Verification overview">
+          <div class="hero-content">
+            <span class="hero-eyebrow">Secure verification</span>
+            <h1 class="hero-title">Verify your identity</h1>
+            <p class="hero-text">
+              Enter the six-digit code sent to your email to finalize account access and continue safely.
+            </p>
+            <div class="feature-grid">
+              <div class="feature-card"><i class="bi bi-patch-check-fill"></i><span>Protected Access</span></div>
+              <div class="feature-card"><i class="bi bi-envelope-open-fill"></i><span>Instant Delivery</span></div>
+              <div class="feature-card"><i class="bi bi-stopwatch-fill"></i><span>Timed Code</span></div>
+              <div class="feature-card"><i class="bi bi-shield-fill-check"></i><span>Trusted Flow</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="auth-card-panel">
+          <div class="auth-card">
+            <div class="auth-card-head">
+              <span class="eyebrow">OTP verification</span>
+              <h2>Enter verification code</h2>
+              <p>We sent a 6-digit code to your email address.</p>
+            </div>
+
+            <div class="status-pill"><i class="bi bi-clock"></i> Expires in <span class="countdown">00:45</span></div>
+
+            <form class="form-section">
+              <div class="otp-grid">
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 1" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 2" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 3" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 4" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 5" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" aria-label="OTP digit 6" />
+              </div>
+
+              <div class="auth-links">
+                <a class="inline-link" href="#">Resend OTP</a>
+                <a class="inline-link" href="login.html">Change email</a>
+              </div>
+
+              <button class="btn btn-primary w-100 mt-2" type="submit">Verify code</button>
+            </form>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>© 2026 Smart Attendance ERP</span>
+        <div class="footer-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms</a>
+          <a href="#">Help Center</a>
+          <a href="#">Contact</a>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
