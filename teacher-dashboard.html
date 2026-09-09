@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Dashboard - Smart Attendance ERP</title>
-    <!-- Meta Descriptions for SEO -->
-    <meta name="description" content="Premium, modern, and professional Teacher Dashboard for Smart Attendance ERP system. Manage classes, take attendance, and track metrics.">
+    <!-- Meta Descriptions -->
+    <meta name="description" content="Professional Teacher Dashboard for Smart Attendance ERP system. Manage classes, record student attendance, view schedules, and track attendance analytics.">
     <!-- Google Fonts Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,8 +14,15 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome 6.5.1 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Custom CSS -->
+    <!-- Custom Enterprise ERP CSS -->
     <link rel="stylesheet" href="teacher-dashboard.css">
+    <!-- Central Authentication & Route Guard -->
+    <script src="auth.js"></script>
+    <script>
+        if (window.AuthService && !window.AuthService.protectRoute()) {
+            // Unauthenticated: immediately redirecting to login...
+        }
+    </script>
 </head>
 <body>
 
@@ -24,41 +31,32 @@
 
     <div class="app-container">
 
-        <!-- --- Sidebar Menu --- -->
+        <!-- --- Sidebar Navigation --- -->
         <aside class="sidebar" id="sidebarMenu">
             <div>
-                <!-- Logo Section -->
+                <!-- Institutional ERP Logo -->
                 <div class="sidebar-logo">
                     <div class="logo-icon">
                         <i class="fa-solid fa-graduation-cap"></i>
                     </div>
-                    <span class="logo-text">Smart Attendance ERP</span>
+                    <div class="logo-meta">
+                        <span class="logo-text">Smart Attendance</span>
+                        <span class="logo-tagline">College ERP Portal</span>
+                    </div>
                 </div>
 
-                <!-- Navigation List -->
+                <!-- Navigation List: Exactly 6 items -->
                 <ul class="sidebar-menu">
                     <li class="menu-item active">
-                        <a href="#" class="menu-item-link">
+                        <a href="#" class="menu-item-link" onclick="simulateNav('Dashboard')">
                             <i class="fa-solid fa-house"></i>
                             <span>Dashboard</span>
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="#" class="menu-item-link" onclick="simulateNav('Students')">
-                            <i class="fa-solid fa-user-graduate"></i>
-                            <span>Students</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
                         <a href="#" class="menu-item-link" onclick="simulateNav('My Classes')">
-                            <i class="fa-solid fa-school"></i>
+                            <i class="fa-solid fa-chalkboard-user"></i>
                             <span>My Classes</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-item-link" onclick="simulateNav('My Subjects')">
-                            <i class="fa-solid fa-book-open"></i>
-                            <span>My Subjects</span>
                         </a>
                     </li>
                     <li class="menu-item">
@@ -75,20 +73,8 @@
                     </li>
                     <li class="menu-item">
                         <a href="#" class="menu-item-link" onclick="simulateNav('Reports')">
-                            <i class="fa-solid fa-chart-simple"></i>
+                            <i class="fa-solid fa-chart-column"></i>
                             <span>Reports</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-item-link" onclick="simulateNav('Notifications')">
-                            <i class="fa-solid fa-bell"></i>
-                            <span>Notifications</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#" class="menu-item-link" onclick="simulateNav('My Profile')">
-                            <i class="fa-solid fa-user"></i>
-                            <span>My Profile</span>
                         </a>
                     </li>
                     <li class="menu-item">
@@ -100,26 +86,19 @@
                 </ul>
             </div>
 
-            <!-- Profile Info and Logout -->
-            <div class="d-flex flex-column gap-2 mt-4">
-                <div class="sidebar-profile">
-                    <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=120" alt="Prof. John Smith" class="sidebar-profile-img">
-                    <div class="sidebar-profile-info">
-                        <div class="sidebar-profile-name">Prof. John Smith</div>
-                        <div class="sidebar-profile-role">Senior Lecturer</div>
-                    </div>
-                </div>
-                <a href="#" class="menu-item-link text-danger mt-1" style="padding: 0.5rem 1rem;" onclick="simulateLogout()">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <span>Logout</span>
-                </a>
+            <!-- Compact Sidebar Footer -->
+            <div class="sidebar-footer">
+                <span class="sidebar-footer-version">ERP v2.4</span>
+                <span class="sidebar-footer-status">
+                    <span class="status-dot-sm"></span> System Online
+                </span>
             </div>
         </aside>
 
-        <!-- --- Main Content Section --- -->
+        <!-- --- Main Content Area --- -->
         <main class="main-wrapper">
 
-            <!-- --- Top Navigation Bar --- -->
+            <!-- --- Top Navigation Header --- -->
             <header class="top-navbar">
                 <div class="navbar-left">
                     <button class="menu-toggle-btn" id="menuToggle" aria-label="Toggle Sidebar">
@@ -130,67 +109,71 @@
 
                 <div class="navbar-center">
                     <div class="search-wrapper">
-                        <input type="text" class="search-input" id="searchBar" placeholder="Search students, classes, or reports...">
+                        <input type="text" class="search-input" id="searchBar" placeholder="Search students, classes, reports...">
                         <i class="fa-solid fa-magnifying-glass search-icon"></i>
                     </div>
                 </div>
 
                 <div class="navbar-right">
-                    <!-- Dark Mode Toggle -->
-                    <button class="nav-btn" id="themeToggle" title="Toggle Dark/Light Mode">
+                    <!-- Dark/Light Mode Theme Toggle -->
+                    <button class="nav-btn" id="themeToggle" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
                         <i class="fa-solid fa-moon"></i>
                     </button>
 
-                    <!-- Notifications Bell -->
+                    <!-- Notifications Bell Dropdown -->
                     <div class="dropdown">
-                        <button class="nav-btn dropdown-toggle no-arrow" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="nav-btn dropdown-toggle no-arrow" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
                             <i class="fa-regular fa-bell"></i>
                             <span class="notification-badge"></span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end py-2" aria-labelledby="notifDropdown" style="width: 320px;">
                             <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
                                 <span class="fw-semibold">Notifications</span>
-                                <span class="badge bg-primary rounded-pill">2 New</span>
+                                <span class="badge rounded-pill" style="background-color: var(--primary); color: #fff; font-size: 11px;">2 New</span>
                             </li>
                             <li>
-                                <a class="dropdown-item py-2 border-bottom" href="#">
+                                <a class="dropdown-item py-2 border-bottom" href="#" onclick="simulateNav('Mark Attendance')">
                                     <div class="d-flex gap-2">
-                                        <div class="text-warning mt-1"><i class="fa-solid fa-circle-exclamation"></i></div>
+                                        <div class="mt-1" style="color: var(--pending);"><i class="fa-solid fa-circle-exclamation"></i></div>
                                         <div>
-                                            <p class="mb-0 text-wrap" style="font-size:13px;">Pending attendance for <strong>SY Computer A</strong> is overdue!</p>
+                                            <p class="mb-0 text-wrap" style="font-size: 12.5px;">Pending attendance for <strong>SY Computer A</strong> is due.</p>
                                             <span class="text-muted" style="font-size: 11px;">10 mins ago</span>
                                         </div>
                                     </div>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item py-2 border-bottom" href="#">
+                                <a class="dropdown-item py-2 border-bottom" href="#" onclick="simulateNav('Reports')">
                                     <div class="d-flex gap-2">
-                                        <div class="text-success mt-1"><i class="fa-solid fa-circle-check"></i></div>
+                                        <div class="mt-1" style="color: var(--present);"><i class="fa-solid fa-circle-check"></i></div>
                                         <div>
-                                            <p class="mb-0 text-wrap" style="font-size:13px;">Parent notifications sent successfully for <strong>Operating Systems</strong>.</p>
+                                            <p class="mb-0 text-wrap" style="font-size: 12.5px;">Parent notifications sent for <strong>Operating Systems</strong>.</p>
                                             <span class="text-muted" style="font-size: 11px;">1 hour ago</span>
                                         </div>
                                     </div>
                                 </a>
                             </li>
                             <li class="text-center pt-2">
-                                <a href="#" class="text-primary fw-medium" style="font-size: 12px;" onclick="simulateNav('Notifications')">View All Notifications</a>
+                                <a href="#" class="fw-medium" style="font-size: 12px; color: var(--primary);" onclick="triggerAction('All Notifications')">View All Notifications</a>
                             </li>
                         </ul>
                     </div>
 
-                    <!-- Teacher Profile Picture & Name Dropdown -->
+                    <!-- Professor Profile Dropdown -->
                     <div class="dropdown">
                         <button class="profile-dropdown-btn dropdown-toggle no-arrow" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=120" alt="Prof. John Smith">
                             <span class="profile-dropdown-name d-none d-sm-inline">Prof. John Smith</span>
-                            <i class="fa-solid fa-chevron-down ms-1" style="font-size: 0.75rem; color: var(--text-secondary);"></i>
+                            <i class="fa-solid fa-chevron-down ms-1" style="font-size: 0.7rem; color: var(--text-secondary);"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                            <li><a class="dropdown-item" href="#" onclick="simulateNav('My Profile')"><i class="fa-regular fa-user me-2"></i>My Profile</a></li>
+                            <li class="px-3 py-2 border-bottom">
+                                <div class="fw-semibold text-truncate" style="font-size: 13px;">Prof. John Smith</div>
+                                <div class="text-muted" style="font-size: 11px;">Senior Lecturer &bull; Dept. of CS</div>
+                            </li>
+                            <li><a class="dropdown-item" href="#" onclick="simulateNav('My Classes')"><i class="fa-solid fa-chalkboard-user me-2"></i>My Classes</a></li>
                             <li><a class="dropdown-item" href="#" onclick="simulateNav('Settings')"><i class="fa-solid fa-sliders me-2"></i>Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            <li><hr class="dropdown-divider my-1"></li>
                             <li><a class="dropdown-item text-danger" href="#" onclick="simulateLogout()"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a></li>
                         </ul>
                     </div>
@@ -200,237 +183,316 @@
             <!-- --- Content Body --- -->
             <div class="content-body">
 
-                <!-- Row 1: Welcome Hero Card -->
-                <div class="row mb-4">
-                    <div class="col-12 animate-fade-in delay-1">
-                        <div class="dashboard-card welcome-card">
-                            <div>
-                                <h2 class="welcome-title">Welcome Back, Professor John Smith</h2>
-                                <p class="welcome-subtitle">Manage your classes, mark attendance, monitor student attendance, and notify parents efficiently from a centralized commercial ERP dashboard.</p>
-                            </div>
-                            
-                            <!-- Premium SVG Education Illustration -->
-                            <svg class="welcome-illustration d-none d-md-block" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="100" cy="100" r="80" fill="rgba(255, 255, 255, 0.08)" />
-                                <!-- Graduation Cap -->
-                                <path d="M100 45L40 70L100 95L160 70L100 45Z" fill="white" />
-                                <path d="M65 81.5V115C65 125 80 135 100 135C120 135 135 125 135 115V81.5" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
-                                <path d="M150 75V115M150 115L145 105M150 115L155 105" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-                                <circle cx="100" cy="70" r="4" fill="#2563eb" />
-                                <!-- Book Stack/Documents -->
-                                <rect x="110" y="125" width="45" height="10" rx="3" fill="rgba(255, 255, 255, 0.7)" />
-                                <rect x="115" y="118" width="35" height="7" rx="2" fill="rgba(255, 255, 255, 0.9)" />
-                            </svg>
-                        </div>
+                <!-- Compact Professional Welcome Bar -->
+                <div class="welcome-bar">
+                    <div>
+                        <h2 class="welcome-greeting">Good morning, Prof. John</h2>
+                        <p class="welcome-subtext">You have 2 classes remaining today and 2 attendance records pending.</p>
+                    </div>
+                    <div class="welcome-date-badge">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span id="liveDate">Loading date...</span>
+                        <span class="badge-separator">|</span>
+                        <i class="fa-regular fa-clock"></i>
+                        <span id="liveClock" class="live-clock-text">00:00:00 AM</span>
                     </div>
                 </div>
 
-                <!-- Row 2: Statistics Cards (6 Cards) -->
-                <div class="animate-fade-in delay-2">
-                    <div class="stat-card-grid">
-                        
-                        <!-- Card 1 -->
-                        <div class="stat-card stat-card-1">
-                            <div class="stat-card-header">
-                                <span class="stat-title">Today's Classes</span>
-                                <div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div>
-                            </div>
-                            <div>
-                                <h3 class="stat-number">4 Lectures</h3>
-                                <p class="stat-desc">2 Completed, 2 Remaining</p>
-                            </div>
-                        </div>
-
-                        <!-- Card 2 -->
-                        <div class="stat-card stat-card-2">
-                            <div class="stat-card-header">
-                                <span class="stat-title">Students Assigned</span>
-                                <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
-                            </div>
-                            <div>
-                                <h3 class="stat-number">124 Students</h3>
-                                <p class="stat-desc">Across 3 departments</p>
-                            </div>
-                        </div>
-
-                        <!-- Card 3 -->
-                        <div class="stat-card stat-card-3">
-                            <div class="stat-card-header">
-                                <span class="stat-title">Attendance Submitted</span>
-                                <div class="stat-icon"><i class="fa-solid fa-clipboard-check"></i></div>
-                            </div>
-                            <div>
-                                <h3 class="stat-number">2 / 4 Classes</h3>
-                                <p class="stat-desc">50% daily progress</p>
-                            </div>
-                        </div>
-
-                        <!-- Card 4 -->
-                        <div class="stat-card stat-card-4">
-                            <div class="stat-card-header">
-                                <span class="stat-title">Students Present</span>
-                                <div class="stat-icon"><i class="fa-solid fa-user-check"></i></div>
-                            </div>
-                            <div>
-                                <h3 class="stat-number">98 Present</h3>
-                                <p class="stat-desc">Average 79.03% presence rate</p>
-                            </div>
-                        </div>
-
-                        <!-- Card 5 -->
-                        <div class="stat-card stat-card-5">
-                            <div class="stat-card-header">
-                                <span class="stat-title">Students Absent</span>
-                                <div class="stat-icon"><i class="fa-solid fa-user-xmark"></i></div>
-                            </div>
-                            <div>
-                                <h3 class="stat-number">26 Absent</h3>
-                                <p class="stat-desc">12 excused, 14 unexcused</p>
-                            </div>
-                        </div>
-
-                        <!-- Card 6 -->
-                        <div class="stat-card stat-card-6">
-                            <div class="stat-card-header">
-                                <span class="stat-title">Pending Attendance</span>
-                                <div class="stat-icon"><i class="fa-solid fa-hourglass-half"></i></div>
-                            </div>
-                            <div>
-                                <h3 class="stat-number">2 Classes</h3>
-                                <p class="stat-desc">Due before 05:00 PM today</p>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-                <!-- Row 3: Grid Layout for Main content columns (Left 9/12 and Right 3/12) -->
-                <div class="row">
+                <!-- Section: 6 Compact Statistics Cards -->
+                <div class="stat-card-grid">
                     
-                    <!-- Left Grid Column (9/12 cols on desktop) -->
-                    <div class="col-xl-9 col-lg-8">
+                    <!-- Stat 1: Today's Classes -->
+                    <div class="stat-card clickable" onclick="simulateNav('My Classes')" title="Click to view My Classes">
+                        <div class="stat-card-header">
+                            <span class="stat-title">Today's Classes</span>
+                            <div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                        </div>
+                        <div>
+                            <div class="stat-number">4 Lectures</div>
+                            <p class="stat-desc">2 Completed, 2 Remaining</p>
+                        </div>
+                    </div>
+
+                    <!-- Stat 2: Students Assigned -->
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-title">Students Assigned</span>
+                            <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+                        </div>
+                        <div>
+                            <div class="stat-number">124 Students</div>
+                            <p class="stat-desc">Across 3 departments</p>
+                        </div>
+                    </div>
+
+                    <!-- Stat 3: Attendance Submitted -->
+                    <div class="stat-card clickable" onclick="simulateNav('Attendance History')" title="Click to view Attendance History">
+                        <div class="stat-card-header">
+                            <span class="stat-title">Attendance Submitted</span>
+                            <div class="stat-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+                        </div>
+                        <div>
+                            <div class="stat-number">2 / 4 Classes</div>
+                            <p class="stat-desc">50% daily submission</p>
+                        </div>
+                    </div>
+
+                    <!-- Stat 4: Students Present -->
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-title">Students Present</span>
+                            <div class="stat-icon present-icon"><i class="fa-solid fa-user-check"></i></div>
+                        </div>
+                        <div>
+                            <div class="stat-number" style="color: var(--present);">98 Present</div>
+                            <p class="stat-desc">Average 79.03% attendance</p>
+                        </div>
+                    </div>
+
+                    <!-- Stat 5: Students Absent -->
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-title">Students Absent</span>
+                            <div class="stat-icon absent-icon"><i class="fa-solid fa-user-xmark"></i></div>
+                        </div>
+                        <div>
+                            <div class="stat-number" style="color: var(--absent);">26 Absent</div>
+                            <p class="stat-desc">12 excused, 14 unexcused</p>
+                        </div>
+                    </div>
+
+                    <!-- Stat 6: Pending Attendance -->
+                    <div class="stat-card clickable" onclick="simulateNav('Mark Attendance')" title="Click to Mark Attendance">
+                        <div class="stat-card-header">
+                            <span class="stat-title">Pending Attendance</span>
+                            <div class="stat-icon pending-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+                        </div>
+                        <div>
+                            <div class="stat-number" style="color: var(--pending);">2 Classes</div>
+                            <p class="stat-desc">Due before 05:00 PM</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Main Layout Grid: Left Column (Major) + Right Column (Sidebar Widgets) -->
+                <div class="row g-3">
+                    
+                    <!-- Left Section: Major Schedule Table & Core Operations -->
+                    <div class="col-xl-8 col-lg-7">
                         
-                        <!-- Row 3a: Today's Schedule & Quick Actions -->
-                        <div class="row">
+                        <!-- Today's Schedule Table (Major Section) -->
+                        <div class="dashboard-card">
+                            <div class="card-title">
+                                <span><i class="fa-solid fa-calendar-week me-2"></i>Today's Schedule</span>
+                                <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px; font-weight: 600; padding: 0.35rem 0.65rem;">4 Sessions</span>
+                            </div>
                             
-                            <!-- Today's Schedule -->
-                            <div class="col-xl-7 col-12 animate-fade-in delay-3">
-                                <div class="dashboard-card">
-                                    <h3 class="card-title">
-                                        <span><i class="fa-solid fa-calendar-week me-2"></i>Today's Schedule</span>
-                                        <span class="badge bg-primary rounded-pill font-size-12 fw-normal">4 Lectures</span>
-                                    </h3>
-                                    
-                                    <div class="table-responsive">
-                                        <table class="table custom-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Time</th>
-                                                    <th>Subject</th>
-                                                    <th>Class</th>
-                                                    <th>Room</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td class="fw-semibold">09:00 AM</td>
-                                                    <td>Data Structures</td>
-                                                    <td>SY Computer A</td>
-                                                    <td>Lab 5</td>
-                                                    <td><span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-semibold">11:15 AM</td>
-                                                    <td>Operating Systems</td>
-                                                    <td>TY IT B</td>
-                                                    <td>Room 302</td>
-                                                    <td><span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-semibold">02:00 PM</td>
-                                                    <td>Software Engineering</td>
-                                                    <td>SY Computer A</td>
-                                                    <td>Room 104</td>
-                                                    <td><span class="status-badge status-inprogress"><i class="fa-solid fa-rotate"></i> In Progress</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-semibold">03:45 PM</td>
-                                                    <td>Machine Learning</td>
-                                                    <td>Final Year CS</td>
-                                                    <td>Lab 2</td>
-                                                    <td><span class="status-badge status-upcoming"><i class="fa-regular fa-clock"></i> Upcoming</span></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
+                            <div class="table-responsive">
+                                <table class="custom-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Subject</th>
+                                            <th>Class</th>
+                                            <th>Room</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="fw-semibold">09:00 AM</td>
+                                            <td class="fw-medium">Data Structures</td>
+                                            <td>SY Computer A</td>
+                                            <td>Lab 5</td>
+                                            <td><span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span></td>
+                                            <td class="text-end">
+                                                <button class="btn-outline-custom" onclick="triggerAction('View Attendance - Data Structures')">
+                                                    <i class="fa-regular fa-eye"></i> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-semibold">11:15 AM</td>
+                                            <td class="fw-medium">Operating Systems</td>
+                                            <td>TY IT B</td>
+                                            <td>Room 302</td>
+                                            <td><span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span></td>
+                                            <td class="text-end">
+                                                <button class="btn-outline-custom" onclick="triggerAction('View Attendance - Operating Systems')">
+                                                    <i class="fa-regular fa-eye"></i> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-semibold">02:00 PM</td>
+                                            <td class="fw-medium">Software Engineering</td>
+                                            <td>SY Computer A</td>
+                                            <td>Room 204</td>
+                                            <td><span class="status-badge status-inprogress"><i class="fa-solid fa-rotate"></i> Pending</span></td>
+                                            <td class="text-end">
+                                                <button class="btn-primary-custom" onclick="simulateNav('Mark Attendance')">
+                                                    <i class="fa-solid fa-clipboard-user"></i> Mark
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-semibold">03:45 PM</td>
+                                            <td class="fw-medium">Machine Learning</td>
+                                            <td>Final Year CS</td>
+                                            <td>Lab 2</td>
+                                            <td><span class="status-badge status-upcoming"><i class="fa-regular fa-clock"></i> Upcoming</span></td>
+                                            <td class="text-end">
+                                                <button class="btn-outline-custom" onclick="triggerAction('Class Details - Machine Learning')">
+                                                    <i class="fa-solid fa-arrow-right"></i> Details
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-
-                            <!-- Quick Actions -->
-                            <div class="col-xl-5 col-12 animate-fade-in delay-3">
-                                <div class="dashboard-card">
-                                    <h3 class="card-title">
-                                        <span><i class="fa-solid fa-bolt me-2"></i>Quick Actions</span>
-                                    </h3>
-                                    
-                                    <div class="quick-action-grid">
-                                        <!-- Card 1 -->
-                                        <div class="quick-action-card" onclick="triggerAction('Mark Attendance')">
-                                            <div class="quick-action-icon"><i class="fa-solid fa-calendar-check"></i></div>
-                                            <p class="quick-action-title">Mark Attendance</p>
-                                        </div>
-                                        <!-- Card 2 -->
-                                        <div class="quick-action-card" onclick="triggerAction('View Students')">
-                                            <div class="quick-action-icon"><i class="fa-solid fa-user-graduate"></i></div>
-                                            <p class="quick-action-title">View Students</p>
-                                        </div>
-                                        <!-- Card 3 -->
-                                        <div class="quick-action-card" onclick="triggerAction('Attendance History')">
-                                            <div class="quick-action-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                                            <p class="quick-action-title">Attendance History</p>
-                                        </div>
-                                        <!-- Card 4 -->
-                                        <div class="quick-action-card" onclick="triggerAction('View Reports')">
-                                            <div class="quick-action-icon"><i class="fa-solid fa-chart-simple"></i></div>
-                                            <p class="quick-action-title">View Reports</p>
-                                        </div>
-                                        <!-- Card 5 -->
-                                        <div class="quick-action-card" onclick="triggerAction('Notification Status')">
-                                            <div class="quick-action-icon"><i class="fa-solid fa-comment-dots"></i></div>
-                                            <p class="quick-action-title">Notification Status</p>
-                                        </div>
-                                        <!-- Card 6 -->
-                                        <div class="quick-action-card" onclick="triggerAction('Settings')">
-                                            <div class="quick-action-icon"><i class="fa-solid fa-gear"></i></div>
-                                            <p class="quick-action-title">Settings</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                         </div>
 
-                        <!-- Row 3b: Recent Attendance & Students Requiring Attention -->
-                        <div class="row">
+                        <!-- Section: Attendance Analytics (Enterprise Deep Navy/Teal Data Display) -->
+                        <div class="dashboard-card">
+                            <div class="card-title">
+                                <span><i class="fa-solid fa-chart-line me-2"></i>Attendance Analytics</span>
+                                <span class="text-muted" style="font-size: 12px; font-weight: 400;">Current Academic Term</span>
+                            </div>
+
+                            <div class="analytics-section-grid">
+                                <!-- Widget 1: Weekly Attendance Trend -->
+                                <div class="analytics-panel">
+                                    <div class="analytics-panel-title">
+                                        <span>Weekly Attendance Trend</span>
+                                        <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 10px;">Mon - Fri</span>
+                                    </div>
+                                    <div class="weekly-trend-chart">
+                                        <div class="trend-column">
+                                            <div class="trend-percent">82%</div>
+                                            <div class="trend-bar-wrapper">
+                                                <div class="trend-bar-fill" style="height: 82%;"></div>
+                                            </div>
+                                            <div class="trend-label">Mon</div>
+                                        </div>
+                                        <div class="trend-column">
+                                            <div class="trend-percent">88%</div>
+                                            <div class="trend-bar-wrapper">
+                                                <div class="trend-bar-fill" style="height: 88%;"></div>
+                                            </div>
+                                            <div class="trend-label">Tue</div>
+                                        </div>
+                                        <div class="trend-column">
+                                            <div class="trend-percent">79%</div>
+                                            <div class="trend-bar-wrapper">
+                                                <div class="trend-bar-fill active" style="height: 79%;"></div>
+                                            </div>
+                                            <div class="trend-label">Today</div>
+                                        </div>
+                                        <div class="trend-column">
+                                            <div class="trend-percent">85%</div>
+                                            <div class="trend-bar-wrapper">
+                                                <div class="trend-bar-fill" style="height: 85%;"></div>
+                                            </div>
+                                            <div class="trend-label">Thu</div>
+                                        </div>
+                                        <div class="trend-column">
+                                            <div class="trend-percent">91%</div>
+                                            <div class="trend-bar-wrapper">
+                                                <div class="trend-bar-fill" style="height: 91%;"></div>
+                                            </div>
+                                            <div class="trend-label">Fri</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Widget 2: Present vs Absent Distribution -->
+                                <div class="analytics-panel">
+                                    <div class="analytics-panel-title">
+                                        <span>Present vs Absent</span>
+                                        <span style="color: var(--present); font-size: 11px; font-weight: 600;">79.0% Avg</span>
+                                    </div>
+                                    <div class="ratio-bar-container">
+                                        <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
+                                            <span>98 Students</span>
+                                            <span>26 Students</span>
+                                        </div>
+                                        <div class="stacked-ratio-bar">
+                                            <div class="stacked-fill-present" style="width: 79%;"></div>
+                                            <div class="stacked-fill-absent" style="width: 21%;"></div>
+                                        </div>
+                                        <div class="ratio-legend">
+                                            <div class="ratio-legend-item">
+                                                <span class="legend-dot present"></span>
+                                                <span>Present (79%)</span>
+                                            </div>
+                                            <div class="ratio-legend-item">
+                                                <span class="legend-dot absent"></span>
+                                                <span>Absent (21%)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Widget 3: Class-wise Attendance -->
+                                <div class="analytics-panel">
+                                    <div class="analytics-panel-title">
+                                        <span>Class-wise Attendance</span>
+                                        <span style="font-size: 11px; color: var(--text-secondary);">3 Batches</span>
+                                    </div>
+                                    <div class="class-attendance-list">
+                                        <div class="class-attendance-item">
+                                            <div class="class-attendance-info">
+                                                <span class="class-name">SY Computer A</span>
+                                                <span class="class-rate">88.5%</span>
+                                            </div>
+                                            <div class="metric-progress-bar">
+                                                <div class="metric-progress-fill present" style="width: 88.5%;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="class-attendance-item">
+                                            <div class="class-attendance-info">
+                                                <span class="class-name">TY IT B</span>
+                                                <span class="class-rate" style="color: var(--pending);">74.2%</span>
+                                            </div>
+                                            <div class="metric-progress-bar">
+                                                <div class="metric-progress-fill pending" style="width: 74.2%;"></div>
+                                            </div>
+                                        </div>
+                                        <div class="class-attendance-item">
+                                            <div class="class-attendance-info">
+                                                <span class="class-name">Final Year CS</span>
+                                                <span class="class-rate">81.0%</span>
+                                            </div>
+                                            <div class="metric-progress-bar">
+                                                <div class="metric-progress-fill primary" style="width: 81.0%;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row: Recent Attendance & Requires Attention -->
+                        <div class="row g-3">
                             
-                            <!-- Recent Attendance Table -->
-                            <div class="col-xl-8 col-12 animate-fade-in delay-4">
-                                <div class="dashboard-card">
-                                    <h3 class="card-title">
+                            <!-- Recent Attendance Table (Live Filter Target) -->
+                            <div class="col-md-7">
+                                <div class="dashboard-card mb-0">
+                                    <div class="card-title">
                                         <span><i class="fa-solid fa-clipboard-user me-2"></i>Recent Attendance (SY Computer A)</span>
-                                    </h3>
+                                    </div>
                                     
                                     <div class="table-responsive">
-                                        <table class="table custom-table" id="recentAttendanceTable">
+                                        <table class="custom-table" id="recentAttendanceTable">
                                             <thead>
                                                 <tr>
-                                                    <th>Roll No</th>
+                                                    <th>Roll</th>
                                                     <th>Student</th>
                                                     <th>Class</th>
                                                     <th>Status</th>
-                                                    <th>Time</th>
-                                                    <th>Action</th>
+                                                    <th class="text-end">Action</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -439,40 +501,35 @@
                                                     <td class="fw-medium">Rahul Sharma</td>
                                                     <td>SY Computer A</td>
                                                     <td><span class="status-badge status-present">Present</span></td>
-                                                    <td>09:05 AM</td>
-                                                    <td><button class="btn btn-primary-custom" onclick="viewStudentDetails('Rahul Sharma', '101')">View Details</button></td>
+                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Rahul Sharma', '101')">Details</button></td>
                                                 </tr>
                                                 <tr>
                                                     <td class="fw-semibold">102</td>
                                                     <td class="fw-medium">Amit Patil</td>
                                                     <td>SY Computer A</td>
                                                     <td><span class="status-badge status-absent">Absent</span></td>
-                                                    <td>--</td>
-                                                    <td><button class="btn btn-primary-custom" onclick="viewStudentDetails('Amit Patil', '102')">View Details</button></td>
+                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Amit Patil', '102')">Details</button></td>
                                                 </tr>
                                                 <tr>
                                                     <td class="fw-semibold">103</td>
                                                     <td class="fw-medium">Sneha Kulkarni</td>
                                                     <td>SY Computer A</td>
                                                     <td><span class="status-badge status-late">Late</span></td>
-                                                    <td>09:12 AM</td>
-                                                    <td><button class="btn btn-primary-custom" onclick="viewStudentDetails('Sneha Kulkarni', '103')">View Details</button></td>
+                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Sneha Kulkarni', '103')">Details</button></td>
                                                 </tr>
                                                 <tr>
                                                     <td class="fw-semibold">104</td>
                                                     <td class="fw-medium">Vikram Singh</td>
                                                     <td>SY Computer A</td>
                                                     <td><span class="status-badge status-present">Present</span></td>
-                                                    <td>09:02 AM</td>
-                                                    <td><button class="btn btn-primary-custom" onclick="viewStudentDetails('Vikram Singh', '104')">View Details</button></td>
+                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Vikram Singh', '104')">Details</button></td>
                                                 </tr>
                                                 <tr>
                                                     <td class="fw-semibold">105</td>
                                                     <td class="fw-medium">Priya Joshi</td>
                                                     <td>SY Computer A</td>
                                                     <td><span class="status-badge status-leave">Leave</span></td>
-                                                    <td>--</td>
-                                                    <td><button class="btn btn-primary-custom" onclick="viewStudentDetails('Priya Joshi', '105')">View Details</button></td>
+                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Priya Joshi', '105')">Details</button></td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -481,40 +538,47 @@
                             </div>
 
                             <!-- Students Requiring Attention -->
-                            <div class="col-xl-4 col-12 animate-fade-in delay-4">
-                                <div class="dashboard-card">
-                                    <h3 class="card-title">
-                                        <span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i>Requires Attention</span>
-                                    </h3>
+                            <div class="col-md-5">
+                                <div class="dashboard-card mb-0">
+                                    <div class="card-title">
+                                        <span style="color: var(--absent);"><i class="fa-solid fa-triangle-exclamation me-2"></i>Requires Attention</span>
+                                    </div>
                                     
                                     <div class="table-responsive">
-                                        <table class="table custom-table">
+                                        <table class="custom-table">
                                             <thead>
                                                 <tr>
                                                     <th>Student</th>
-                                                    <th>Reason</th>
                                                     <th>Priority</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td class="fw-medium">Rohan Mehta<div class="text-muted font-size-11" style="font-size: 11px;">SY Computer A</div></td>
-                                                    <td style="font-size: 11px;">Attendance Below 75%</td>
+                                                    <td>
+                                                        <div class="fw-medium">Rohan Mehta</div>
+                                                        <div class="text-muted" style="font-size: 11px;">Attendance Below 75%</div>
+                                                    </td>
                                                     <td><span class="status-badge priority-high">High</span></td>
                                                 </tr>
                                                 <tr>
-                                                    <td class="fw-medium">Neha Shinde<div class="text-muted font-size-11" style="font-size: 11px;">TY IT B</div></td>
-                                                    <td style="font-size: 11px;">Absent 3 consecutive lectures</td>
+                                                    <td>
+                                                        <div class="fw-medium">Neha Shinde</div>
+                                                        <div class="text-muted" style="font-size: 11px;">Absent 3 consecutive sessions</div>
+                                                    </td>
                                                     <td><span class="status-badge priority-high">High</span></td>
                                                 </tr>
                                                 <tr>
-                                                    <td class="fw-medium">Akash Verma<div class="text-muted font-size-11" style="font-size: 11px;">Final Year CS</div></td>
-                                                    <td style="font-size: 11px;">Low monthly attendance</td>
+                                                    <td>
+                                                        <div class="fw-medium">Akash Verma</div>
+                                                        <div class="text-muted" style="font-size: 11px;">Low monthly average</div>
+                                                    </td>
                                                     <td><span class="status-badge priority-medium">Medium</span></td>
                                                 </tr>
                                                 <tr>
-                                                    <td class="fw-medium">Pooja Nair<div class="text-muted font-size-11" style="font-size: 11px;">SY Computer A</div></td>
-                                                    <td style="font-size: 11px;">Frequent late arrival</td>
+                                                    <td>
+                                                        <div class="fw-medium">Pooja Nair</div>
+                                                        <div class="text-muted" style="font-size: 11px;">Frequent late check-ins</div>
+                                                    </td>
                                                     <td><span class="status-badge priority-low">Low</span></td>
                                                 </tr>
                                             </tbody>
@@ -525,187 +589,158 @@
 
                         </div>
 
-                        <!-- Row 3c: Parent Notification Status & Attendance Analytics Placeholder -->
-                        <div class="row">
-                            
-                            <!-- Parent Notification Status -->
-                            <div class="col-xl-5 col-12 animate-fade-in delay-5">
-                                <div class="dashboard-card">
-                                    <h3 class="card-title">
-                                        <span><i class="fa-brands fa-whatsapp me-2"></i>Parent Notification Status</span>
-                                    </h3>
-                                    
-                                    <div class="notification-status-list">
-                                        
-                                        <!-- Item 1 -->
-                                        <div class="notification-status-item">
-                                            <div class="notification-left">
-                                                <div class="notification-indicator success">
-                                                    <i class="fa-solid fa-circle-check"></i>
-                                                </div>
-                                                <div class="notification-details">
-                                                    <span class="notification-student">Rahul Sharma</span>
-                                                    <span class="notification-meta">Operating Systems | 10:05 AM</span>
-                                                </div>
-                                            </div>
-                                            <span class="status-badge status-present">WhatsApp Sent</span>
-                                        </div>
-
-                                        <!-- Item 2 -->
-                                        <div class="notification-status-item">
-                                            <div class="notification-left">
-                                                <div class="notification-indicator pending">
-                                                    <i class="fa-solid fa-triangle-exclamation"></i>
-                                                </div>
-                                                <div class="notification-details">
-                                                    <span class="notification-student">Amit Patil</span>
-                                                    <span class="notification-meta">Parent Contact Unavailable</span>
-                                                </div>
-                                            </div>
-                                            <span class="status-badge status-absent">Pending</span>
-                                        </div>
-
-                                        <!-- Item 3 -->
-                                        <div class="notification-status-item">
-                                            <div class="notification-left">
-                                                <div class="notification-indicator success">
-                                                    <i class="fa-solid fa-circle-check"></i>
-                                                </div>
-                                                <div class="notification-details">
-                                                    <span class="notification-student">Sneha Kulkarni</span>
-                                                    <span class="notification-meta">Operating Systems | 11:20 AM</span>
-                                                </div>
-                                            </div>
-                                            <span class="status-badge status-present">SMS Sent</span>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Attendance Analytics Placeholder -->
-                            <div class="col-xl-7 col-12 animate-fade-in delay-5">
-                                <div class="dashboard-card">
-                                    <h3 class="card-title">
-                                        <span><i class="fa-solid fa-chart-line me-2"></i>Attendance Analytics</span>
-                                    </h3>
-                                    
-                                    <div class="analytics-grid">
-                                        
-                                        <!-- Card 1 -->
-                                        <div class="analytics-placeholder-card">
-                                            <div class="analytics-placeholder-icon"><i class="fa-solid fa-chart-pie"></i></div>
-                                            <h4 class="analytics-placeholder-title">Attendance Analytics</h4>
-                                            <p class="analytics-placeholder-desc">Visual breakdown of student performance & presence rates.</p>
-                                            <div class="analytics-placeholder-overlay">
-                                                <span class="analytics-overlay-text">Integrate Backend</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Card 2 -->
-                                        <div class="analytics-placeholder-card">
-                                            <div class="analytics-placeholder-icon"><i class="fa-solid fa-chart-area"></i></div>
-                                            <h4 class="analytics-placeholder-title">Attendance Trends</h4>
-                                            <p class="analytics-placeholder-desc">Historical tracking of class-wise attendance rates.</p>
-                                            <div class="analytics-placeholder-overlay">
-                                                <span class="analytics-overlay-text">Integrate Backend</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Card 3 -->
-                                        <div class="analytics-placeholder-card">
-                                            <div class="analytics-placeholder-icon"><i class="fa-solid fa-file-invoice"></i></div>
-                                            <h4 class="analytics-placeholder-title">Monthly Reports</h4>
-                                            <p class="analytics-placeholder-desc">Automated monthly ledger sheet and roll-call exports.</p>
-                                            <div class="analytics-placeholder-overlay">
-                                                <span class="analytics-overlay-text">Integrate Backend</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Card 4 -->
-                                        <div class="analytics-placeholder-card">
-                                            <div class="analytics-placeholder-icon"><i class="fa-solid fa-lightbulb"></i></div>
-                                            <h4 class="analytics-placeholder-title">Performance Insights</h4>
-                                            <p class="analytics-placeholder-desc">AI-driven correlation between attendance rates and marks.</p>
-                                            <div class="analytics-placeholder-overlay">
-                                                <span class="analytics-overlay-text">Integrate Backend</span>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                    <div class="text-center mt-3">
-                                        <span class="text-muted" style="font-size: 12px; font-weight: 500;">
-                                            <i class="fa-solid fa-info-circle me-1"></i> This section will display analytics after backend integration.
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-
                     </div>
 
-                    <!-- Right Grid Column (3/12 cols on desktop) -->
-                    <div class="col-xl-3 col-lg-4 animate-fade-in delay-6">
-                        <div class="right-panel">
-                            
-                            <!-- Widget 1: Digital clock and calendar -->
-                            <div class="floating-panel-card clock-widget">
-                                <div class="clock-icon"><i class="fa-regular fa-clock"></i></div>
-                                <div class="clock-time" id="liveClock">12:00:00 PM</div>
-                                <div class="clock-date" id="liveDate">Monday, 3rd August 2026</div>
+                    <!-- Right Section: Next Lecture, Attendance Summary & Quick Actions -->
+                    <div class="col-xl-4 col-lg-5">
+                        
+                        <!-- Widget 1: NEXT LECTURE (Replaces old large clock) -->
+                        <div class="dashboard-card next-lecture-card">
+                            <div class="next-lecture-header">
+                                <span class="next-lecture-label"><i class="fa-regular fa-bell me-1"></i> Next Lecture</span>
+                                <span class="status-badge status-upcoming">Scheduled</span>
                             </div>
-
-                            <!-- Widget 2: Next Lecture Card -->
-                            <div class="floating-panel-card next-lecture-card">
-                                <h4 class="next-lecture-title">Next Lecture</h4>
-                                <div class="next-lecture-subject">Software Engineering</div>
-                                <div class="next-lecture-details mt-2">
-                                    <span><i class="fa-regular fa-clock"></i> 02:00 PM - 03:00 PM</span>
-                                    <span><i class="fa-solid fa-school"></i> SY Computer A</span>
-                                    <span><i class="fa-solid fa-location-dot"></i> Room 104</span>
-                                </div>
+                            <div class="next-lecture-subject">Software Engineering</div>
+                            <div class="next-lecture-details">
+                                <span><i class="fa-regular fa-clock"></i> 02:00 PM – 03:00 PM</span>
+                                <span><i class="fa-solid fa-chalkboard"></i> SY Computer A</span>
+                                <span><i class="fa-solid fa-location-dot"></i> Room 204</span>
                             </div>
-
-                            <!-- Widget 3: Pending Attendance Alert -->
-                            <div class="floating-panel-card alert-widget">
-                                <div class="alert-widget-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
-                                <div class="alert-widget-text">
-                                    <span class="alert-widget-title">Pending Attendance</span>
-                                    <span class="alert-widget-desc">2 sessions require verification: SY Computer A and TY IT B.</span>
-                                </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn-primary-custom flex-grow-1" onclick="simulateNav('Mark Attendance')">
+                                    <i class="fa-solid fa-clipboard-user me-1"></i> Mark Attendance
+                                </button>
+                                <button class="btn-outline-custom" onclick="simulateNav('My Classes')" title="Class details">
+                                    View Class
+                                </button>
                             </div>
-
-                            <!-- Widget 4: Quick Summary / Notification Status -->
-                            <div class="floating-panel-card">
-                                <h4 class="card-title" style="font-size: 0.95rem; margin-bottom: 1rem;">
-                                    <span><i class="fa-solid fa-chart-pie me-2"></i>Daily Overview</span>
-                                </h4>
-                                <div class="summary-widget-list">
-                                    <div class="summary-widget-item">
-                                        <span>Total Scheduled Lectures</span>
-                                        <span>4</span>
-                                    </div>
-                                    <div class="summary-widget-item">
-                                        <span>Lectures Conducted</span>
-                                        <span>2</span>
-                                    </div>
-                                    <div class="summary-widget-item">
-                                        <span>Average Attendance Today</span>
-                                        <span>79.03%</span>
-                                    </div>
-                                    <div class="summary-widget-item">
-                                        <span>Pending Parent Alerts</span>
-                                        <span>1</span>
-                                    </div>
-                                    <div class="summary-widget-item">
-                                        <span>System Health Status</span>
-                                        <span class="text-success"><i class="fa-solid fa-circle-check"></i> Healthy</span>
-                                    </div>
-                                </div>
-                            </div>
-
                         </div>
+
+                        <!-- Widget 2: Attendance Summary -->
+                        <div class="dashboard-card">
+                            <div class="card-title">
+                                <span><i class="fa-solid fa-chart-pie me-2"></i>Attendance Summary</span>
+                            </div>
+                            <div class="summary-widget-list">
+                                <div class="summary-metric-group">
+                                    <div class="summary-metric-header">
+                                        <span>Today's Attendance</span>
+                                        <span class="summary-metric-value" style="color: var(--present);">79%</span>
+                                    </div>
+                                    <div class="metric-progress-bar">
+                                        <div class="metric-progress-fill present" style="width: 79%;"></div>
+                                    </div>
+                                </div>
+                                <div class="summary-metric-group">
+                                    <div class="summary-metric-header">
+                                        <span>This Week</span>
+                                        <span class="summary-metric-value" style="color: var(--primary);">84%</span>
+                                    </div>
+                                    <div class="metric-progress-bar">
+                                        <div class="metric-progress-fill primary" style="width: 84%;"></div>
+                                    </div>
+                                </div>
+                                <div class="summary-metric-group">
+                                    <div class="summary-metric-header">
+                                        <span>Pending Verification</span>
+                                        <span class="summary-metric-value" style="color: var(--pending);">2 Classes</span>
+                                    </div>
+                                    <div class="metric-progress-bar">
+                                        <div class="metric-progress-fill pending" style="width: 50%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Widget 3: Quick Actions (4 Clean Enterprise Cards) -->
+                        <div class="dashboard-card">
+                            <div class="card-title">
+                                <span><i class="fa-solid fa-bolt me-2"></i>Quick Actions</span>
+                            </div>
+                            <div class="quick-action-grid">
+                                <!-- Action 1 -->
+                                <div class="quick-action-card" onclick="simulateNav('Mark Attendance')">
+                                    <div class="quick-action-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                                    <div class="quick-action-body">
+                                        <h4 class="quick-action-title">Mark Attendance</h4>
+                                        <p class="quick-action-desc">Record roll-call for active sessions</p>
+                                    </div>
+                                </div>
+                                <!-- Action 2 -->
+                                <div class="quick-action-card" onclick="simulateNav('My Classes')">
+                                    <div class="quick-action-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+                                    <div class="quick-action-body">
+                                        <h4 class="quick-action-title">My Classes</h4>
+                                        <p class="quick-action-desc">View assigned batches and subjects</p>
+                                    </div>
+                                </div>
+                                <!-- Action 3 -->
+                                <div class="quick-action-card" onclick="simulateNav('Attendance History')">
+                                    <div class="quick-action-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                                    <div class="quick-action-body">
+                                        <h4 class="quick-action-title">Attendance History</h4>
+                                        <p class="quick-action-desc">Review logs and past attendance</p>
+                                    </div>
+                                </div>
+                                <!-- Action 4 -->
+                                <div class="quick-action-card" onclick="simulateNav('Reports')">
+                                    <div class="quick-action-icon"><i class="fa-solid fa-chart-column"></i></div>
+                                    <div class="quick-action-body">
+                                        <h4 class="quick-action-title">Reports</h4>
+                                        <p class="quick-action-desc">Generate monthly summaries & exports</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Widget 4: Parent Notification Status -->
+                        <div class="dashboard-card mb-0">
+                            <div class="card-title">
+                                <span><i class="fa-brands fa-whatsapp me-2"></i>Parent Notification Status</span>
+                            </div>
+                            
+                            <div class="notification-status-list">
+                                <div class="notification-status-item">
+                                    <div class="notification-left">
+                                        <div class="notification-indicator success">
+                                            <i class="fa-solid fa-check"></i>
+                                        </div>
+                                        <div class="notification-details">
+                                            <span class="notification-student">Rahul Sharma</span>
+                                            <span class="notification-meta">Operating Systems &bull; 10:05 AM</span>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-present">WhatsApp</span>
+                                </div>
+
+                                <div class="notification-status-item">
+                                    <div class="notification-left">
+                                        <div class="notification-indicator pending">
+                                            <i class="fa-solid fa-exclamation"></i>
+                                        </div>
+                                        <div class="notification-details">
+                                            <span class="notification-student">Amit Patil</span>
+                                            <span class="notification-meta">Contact info missing</span>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-absent">Pending</span>
+                                </div>
+
+                                <div class="notification-status-item">
+                                    <div class="notification-left">
+                                        <div class="notification-indicator success">
+                                            <i class="fa-solid fa-check"></i>
+                                        </div>
+                                        <div class="notification-details">
+                                            <span class="notification-student">Sneha Kulkarni</span>
+                                            <span class="notification-meta">Operating Systems &bull; 11:20 AM</span>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge status-present">SMS</span>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                 </div>
@@ -715,11 +750,11 @@
             <!-- --- Footer --- -->
             <footer class="footer">
                 <div class="footer-left">
-                    <i class="fa-solid fa-graduation-cap text-primary"></i>
-                    <span>Smart Attendance ERP - Teacher Portal</span>
+                    <i class="fa-solid fa-building-columns"></i>
+                    <span>Smart Attendance ERP &bull; Teacher Academic Portal</span>
                 </div>
                 <div class="footer-right">
-                    <span>Version 1.0 &copy; 2026</span>
+                    <span>Academic Year 2026&ndash;2027 &bull; v2.4</span>
                 </div>
             </footer>
 
@@ -729,40 +764,43 @@
     <!-- Student Detail Modal -->
     <div class="modal fade" id="studentDetailModal" tabindex="-1" aria-labelledby="studentDetailModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius: 18px; border: var(--card-border); background-color: var(--bg-card);">
-                <div class="modal-header border-bottom-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="studentDetailModalLabel">Student Profile Detail</h5>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold" id="studentDetailModalLabel" style="font-size: 1rem;">Student Academic Profile</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body pt-3">
+                <div class="modal-body p-3">
                     <div class="text-center mb-3">
-                        <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=120" id="modalStudentImg" alt="Student Profile" class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid var(--primary);">
-                        <h4 class="fw-bold mb-1" id="modalStudentName">Rahul Sharma</h4>
-                        <p class="text-muted mb-0" id="modalStudentRoll">Roll No: 101 | SY Computer A</p>
+                        <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=120" id="modalStudentImg" alt="Student Profile" class="rounded-circle mb-2" style="width: 72px; height: 72px; object-fit: cover; border: 2px solid var(--primary);">
+                        <h4 class="fw-semibold mb-1" id="modalStudentName" style="font-size: 1.15rem; color: var(--text-primary);">Rahul Sharma</h4>
+                        <p class="text-muted mb-0" id="modalStudentRoll" style="font-size: 12px;">Roll No: 101 | SY Computer A</p>
                     </div>
-                    <hr class="my-3" style="opacity: 0.1;">
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase;">Total Attendance</span>
-                            <span class="fw-bold text-success" style="font-size: 1.15rem;">88.5%</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase;">Total Lectures</span>
-                            <span class="fw-bold" style="font-size: 1.15rem;">52 / 60</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase;">Parent Name</span>
-                            <span class="fw-medium">Mr. R. Sharma</span>
-                        </div>
-                        <div class="col-6">
-                            <span class="text-muted d-block" style="font-size: 11px; text-transform: uppercase;">Parent Contact</span>
-                            <span class="fw-medium text-primary"><i class="fa-solid fa-phone me-1"></i> +91 98765 43210</span>
+                    <div class="p-3 mb-2 rounded" style="background-color: var(--bg-hover); border: 1px solid var(--border-color);">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 10.5px; text-transform: uppercase; font-weight: 600;">Total Attendance</span>
+                                <span class="fw-bold text-success" id="modalStudentAttendance" style="font-size: 1.1rem;">88.5%</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 10.5px; text-transform: uppercase; font-weight: 600;">Total Lectures</span>
+                                <span class="fw-bold" style="font-size: 1.1rem; color: var(--text-primary);">52 / 60</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 10.5px; text-transform: uppercase; font-weight: 600;">Parent Name</span>
+                                <span class="fw-medium text-truncate d-block" style="font-size: 13px;">Mr. R. Sharma</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 10.5px; text-transform: uppercase; font-weight: 600;">Parent Contact</span>
+                                <span class="fw-medium text-truncate d-block" style="font-size: 13px; color: var(--primary);"><i class="fa-solid fa-phone me-1"></i> +91 98765 43210</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top-0 pt-0">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal" style="font-size: 0.85rem; padding: 0.5rem 1.25rem;">Close</button>
-                    <button type="button" class="btn btn-primary rounded-pill btn-primary-custom" onclick="simulateContactParent()">Contact Parent</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Close</button>
+                    <button type="button" class="btn-primary-custom" onclick="simulateContactParent()">
+                        <i class="fa-brands fa-whatsapp me-1"></i> Contact Parent
+                    </button>
                 </div>
             </div>
         </div>

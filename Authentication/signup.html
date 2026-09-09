@@ -1,162 +1,440 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign Up | Smart Attendance ERP</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | Smart Attendance ERP</title>
+    <!-- Google Fonts Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6.5.1 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Authentication ERP Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
     <div class="page-shell">
-      <header class="topbar">
-        <a class="brand" href="login.html">
-          <span class="brand-mark"><i class="bi bi-shield-check"></i></span>
-          <span>Smart Attendance ERP</span>
-        </a>
-        <nav class="topbar-nav" aria-label="Quick links">
-          <a href="#">Help</a>
-          <a href="#">Contact Support</a>
-          <a href="#" class="lang-pill">EN</a>
-        </nav>
-      </header>
+        <!-- Top Navigation Header -->
+        <header class="topbar">
+            <a class="brand" href="login.html">
+                <div class="brand-mark">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="brand-text-wrap">
+                    <span class="brand-name">Smart Attendance</span>
+                    <span class="brand-sub">College ERP Portal</span>
+                </div>
+            </a>
+            <nav class="topbar-nav" aria-label="Portal links">
+                <a href="#"><i class="fa-regular fa-circle-question me-1"></i> Help</a>
+                <a href="#"><i class="fa-solid fa-headset me-1"></i> Support</a>
+                <span class="lang-pill">Academic ERP</span>
+            </nav>
+        </header>
 
-      <main class="auth-layout">
-        <section class="hero-panel" aria-label="Product overview">
-          <div class="hero-content">
-            <span class="hero-eyebrow">Institutional growth</span>
-            <h1 class="hero-title">Build a smarter attendance workflow</h1>
-            <p class="hero-text">
-              Join schools and colleges using modern tools for secure sign-ins, instant communication,
-              and accurate reporting across departments.
-            </p>
-            <div class="feature-grid">
-              <div class="feature-card"><i class="bi bi-shield-lock-fill"></i><span>Secure Login</span></div>
-              <div class="feature-card"><i class="bi bi-journal-check"></i><span>Attendance Tracking</span></div>
-              <div class="feature-card"><i class="bi bi-person-badge-fill"></i><span>Role-Based Access</span></div>
-              <div class="feature-card"><i class="bi bi-graph-up-arrow"></i><span>Live Analytics</span></div>
+        <!-- Main Split Authentication Layout -->
+        <main class="auth-layout">
+            
+            <!-- Left Side: Product Branding & Overview -->
+            <section class="hero-panel" aria-label="System Introduction">
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <i class="fa-solid fa-user-plus"></i> Faculty Registration
+                    </div>
+                    <h1 class="hero-title">Create your workspace</h1>
+                    <p class="hero-tagline">"Seamless class & attendance management."</p>
+                    <p class="hero-text">
+                        Join departments using institutional tools for automated roll-call, real-time parent notifications, and verified attendance ledgers.
+                    </p>
+
+                    <!-- Feature Badges -->
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fa-solid fa-id-card"></i>
+                            <span>Verified Faculty Profiles</span>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <span>Department Sync</span>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fa-solid fa-shield-check"></i>
+                            <span>Audit-Proof Records</span>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fa-solid fa-bolt"></i>
+                            <span>Instant Setup</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-footer-note">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Authorized for Affiliated Colleges &bull; ERP v2.4</span>
+                </div>
+            </section>
+
+            <!-- Right Side: Sign Up Form Card -->
+            <section class="auth-card-panel">
+                <div class="auth-card">
+                    
+                    <div class="auth-card-head">
+                        <span class="auth-eyebrow">Registration</span>
+                        <h2 class="auth-title">Create an account</h2>
+                        <p class="auth-desc">Register your faculty account to start managing your academic schedule and classes.</p>
+                    </div>
+
+                    <!-- Global Alert Banner -->
+                    <div class="auth-alert auth-alert-error" id="signupAlert">
+                        <i class="fa-solid fa-circle-exclamation mt-1"></i>
+                        <span id="signupAlertMsg">Registration failed. Please check your information.</span>
+                    </div>
+
+                    <form class="form-section" id="signupForm" novalidate>
+                        
+                        <!-- Full Name & Role Row -->
+                        <div class="form-row-2">
+                            <div class="field-group">
+                                <label class="field-label" for="fullName">Full Name</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-regular fa-user input-icon"></i>
+                                    <input 
+                                        type="text" 
+                                        class="form-control-custom" 
+                                        id="fullName" 
+                                        placeholder="Prof. John Smith" 
+                                        required 
+                                    />
+                                </div>
+                                <div class="invalid-feedback-custom" id="nameFeedback">Please enter your full name.</div>
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="roleSelect">Academic Role</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-user-tag input-icon"></i>
+                                    <select class="form-select-custom" id="roleSelect" required>
+                                        <option value="Professor" selected>Professor</option>
+                                        <option value="Administrator">Administrator</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Institutional Email -->
+                        <div class="field-group">
+                            <label class="field-label" for="signupEmail">Email Address</label>
+                            <div class="input-wrapper">
+                                <i class="fa-regular fa-envelope input-icon"></i>
+                                <input 
+                                    type="email" 
+                                    class="form-control-custom" 
+                                    id="signupEmail" 
+                                    placeholder="professor@university.edu" 
+                                    autocomplete="email"
+                                    required 
+                                />
+                            </div>
+                            <div class="invalid-feedback-custom" id="emailFeedback">Please enter a valid email address.</div>
+                        </div>
+
+                        <!-- Password Field with Show/Hide Toggle -->
+                        <div class="field-group">
+                            <label class="field-label" for="signupPassword">Password</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-key input-icon"></i>
+                                <input 
+                                    type="password" 
+                                    class="form-control-custom" 
+                                    id="signupPassword" 
+                                    placeholder="Create password" 
+                                    autocomplete="new-password"
+                                    required 
+                                />
+                                <button type="button" class="password-toggle" id="togglePasswordBtn" aria-label="Toggle password visibility">
+                                    <i class="fa-regular fa-eye" id="togglePasswordIcon"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback-custom" id="passwordFeedback">Password does not meet requirements.</div>
+                        </div>
+
+                        <!-- Password Strength Requirements Checklist -->
+                        <div class="password-strength-box" id="passwordStrengthBox">
+                            <div class="strength-header">
+                                <span>Password Strength</span>
+                                <span id="strengthLabel">Weak</span>
+                            </div>
+                            <div class="strength-meter-bars">
+                                <div class="strength-bar-segment" id="bar1"></div>
+                                <div class="strength-bar-segment" id="bar2"></div>
+                                <div class="strength-bar-segment" id="bar3"></div>
+                            </div>
+                            <ul class="strength-criteria-list">
+                                <li class="criteria-item" id="critLength">
+                                    <i class="fa-solid fa-circle"></i>
+                                    <span>Minimum 8 characters</span>
+                                </li>
+                                <li class="criteria-item" id="critUpper">
+                                    <i class="fa-solid fa-circle"></i>
+                                    <span>At least one uppercase letter</span>
+                                </li>
+                                <li class="criteria-item" id="critNumber">
+                                    <i class="fa-solid fa-circle"></i>
+                                    <span>At least one number or symbol</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Confirm Password Field -->
+                        <div class="field-group">
+                            <label class="field-label" for="confirmPassword">Confirm Password</label>
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-shield-halved input-icon"></i>
+                                <input 
+                                    type="password" 
+                                    class="form-control-custom" 
+                                    id="confirmPassword" 
+                                    placeholder="Re-enter password" 
+                                    autocomplete="new-password"
+                                    required 
+                                />
+                            </div>
+                            <div class="invalid-feedback-custom" id="confirmFeedback">Passwords do not match.</div>
+                        </div>
+
+                        <!-- Terms Checkbox -->
+                        <div class="form-options">
+                            <label class="checkbox-wrap">
+                                <input type="checkbox" id="termsCheck" required>
+                                <span>I accept the institutional terms & conditions</span>
+                            </label>
+                        </div>
+                        <div class="invalid-feedback-custom" id="termsFeedback">You must accept the terms to proceed.</div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn-submit" id="submitBtn">
+                            <span class="btn-spinner" id="btnSpinner"></span>
+                            <span id="btnText">Create Account</span>
+                        </button>
+
+                        <!-- Secondary Links -->
+                        <div class="auth-footer-links">
+                            <span>Already have an account?</span>
+                            <a href="login.html">Sign in</a>
+                        </div>
+                    </form>
+
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>&copy; 2026 Smart Attendance ERP &bull; Academic Portal</span>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Security Guidelines</a>
             </div>
-          </div>
-        </section>
-
-        <section class="auth-card-panel">
-          <div class="auth-card">
-            <div class="auth-card-head">
-              <span class="eyebrow">Create account</span>
-              <h2>Create your workspace</h2>
-              <p>Set up your professional profile and get started in minutes.</p>
-            </div>
-
-            <form class="form-section" action="../teacher-dashboard.html" method="get">
-              <div class="form-row">
-                <div class="field-group form-floating">
-                  <i class="bi bi-person field-icon"></i>
-                  <input type="text" class="form-control" id="fullName" placeholder="Full Name" />
-                  <label for="fullName">Full Name</label>
-                </div>
-                <div class="field-group form-floating">
-                  <i class="bi bi-building field-icon"></i>
-                  <input type="text" class="form-control" id="schoolName" placeholder="College / School Name" />
-                  <label for="schoolName">College / School Name</label>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="field-group form-floating">
-                  <i class="bi bi-person-vcard field-icon"></i>
-                  <input type="text" class="form-control" id="employeeId" placeholder="Employee ID" />
-                  <label for="employeeId">Employee ID</label>
-                </div>
-                <div class="field-group form-floating">
-                  <i class="bi bi-diagram-3 field-icon"></i>
-                  <select class="form-select" id="role">
-                    <option selected disabled>Select role</option>
-                    <option>Teacher</option>
-                    <option>HOD</option>
-                    <option>Admin</option>
-                  </select>
-                  <label for="role">Role</label>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="field-group form-floating">
-                  <i class="bi bi-journal-text field-icon"></i>
-                  <input type="text" class="form-control" id="department" placeholder="Department" />
-                  <label for="department">Department</label>
-                </div>
-                <div class="field-group form-floating">
-                  <i class="bi bi-award field-icon"></i>
-                  <input type="text" class="form-control" id="designation" placeholder="Designation" />
-                  <label for="designation">Designation</label>
-                </div>
-              </div>
-
-              <div class="field-group form-floating">
-                <i class="bi bi-phone field-icon"></i>
-                <input type="tel" class="form-control" id="mobile" placeholder="Mobile Number" />
-                <label for="mobile">Mobile Number</label>
-              </div>
-
-              <div class="field-group form-floating">
-                <i class="bi bi-envelope field-icon"></i>
-                <input type="email" class="form-control" id="email" placeholder="Email" />
-                <label for="email">Email</label>
-              </div>
-
-              <div class="field-group form-floating">
-                <i class="bi bi-key field-icon"></i>
-                <input type="password" class="form-control" id="password" placeholder="Password" />
-                <button class="password-toggle" type="button" aria-label="Toggle password visibility">
-                  <i class="bi bi-eye"></i>
-                </button>
-                <label for="password">Password</label>
-              </div>
-
-              <div class="validation-card" aria-label="Password strength indicator">
-                <h6>Password strength</h6>
-                <ul class="validation-list">
-                  <li><i class="bi bi-check-circle-fill"></i> Minimum 8 characters</li>
-                  <li><i class="bi bi-check-circle-fill"></i> One uppercase character</li>
-                  <li><i class="bi bi-check-circle-fill"></i> One number or symbol</li>
-                </ul>
-              </div>
-
-              <div class="field-group form-floating">
-                <i class="bi bi-shield-lock field-icon"></i>
-                <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm Password" />
-                <label for="confirmPassword">Confirm Password</label>
-              </div>
-
-              <div class="form-check">
-                <div class="d-flex align-items-center gap-2">
-                  <input class="form-check-input" type="checkbox" id="terms" />
-                  <label class="form-check-label" for="terms">I accept the terms and conditions</label>
-                </div>
-              </div>
-
-              <button class="btn btn-primary w-100 mt-2" type="submit">Create account</button>
-
-              <div class="auth-links">
-                <span class="text-muted">Already have an account?</span>
-                <a class="inline-link" href="login.html">Login</a>
-              </div>
-            </form>
-          </div>
-        </section>
-      </main>
-
-      <footer class="footer">
-        <span>© 2026 Smart Attendance ERP</span>
-        <div class="footer-links">
-          <a href="#">Privacy Policy</a>
-          <a href="#">Terms</a>
-          <a href="#">Help Center</a>
-          <a href="#">Contact</a>
-        </div>
-      </footer>
+        </footer>
     </div>
-  </body>
+
+    <!-- Core Authentication Controller -->
+    <script src="../auth.js"></script>
+    <script>
+        // Guard: If already authenticated, redirect to Dashboard immediately
+        if (window.AuthService && window.AuthService.redirectIfAuthenticated()) {
+            // Redirecting...
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('signupForm');
+            const fullNameInput = document.getElementById('fullName');
+            const roleSelect = document.getElementById('roleSelect');
+            const emailInput = document.getElementById('signupEmail');
+            const passwordInput = document.getElementById('signupPassword');
+            const confirmInput = document.getElementById('confirmPassword');
+            const termsCheck = document.getElementById('termsCheck');
+
+            const nameFeedback = document.getElementById('nameFeedback');
+            const emailFeedback = document.getElementById('emailFeedback');
+            const passwordFeedback = document.getElementById('passwordFeedback');
+            const confirmFeedback = document.getElementById('confirmFeedback');
+            const termsFeedback = document.getElementById('termsFeedback');
+            const signupAlert = document.getElementById('signupAlert');
+            const signupAlertMsg = document.getElementById('signupAlertMsg');
+
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+
+            // Password Show/Hide Toggle
+            const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+            const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+            togglePasswordBtn.addEventListener('click', () => {
+                const isPass = passwordInput.type === 'password';
+                passwordInput.type = isPass ? 'text' : 'password';
+                togglePasswordIcon.className = isPass ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+            });
+
+            // Live Password Strength Checker
+            const critLength = document.getElementById('critLength');
+            const critUpper = document.getElementById('critUpper');
+            const critNumber = document.getElementById('critNumber');
+            const bar1 = document.getElementById('bar1');
+            const bar2 = document.getElementById('bar2');
+            const bar3 = document.getElementById('bar3');
+            const strengthLabel = document.getElementById('strengthLabel');
+
+            function updatePasswordStrength() {
+                const val = passwordInput.value;
+                const hasLength = val.length >= 8;
+                const hasUpper = /[A-Z]/.test(val);
+                const hasNumber = /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val);
+
+                // Update criteria icons
+                updateCriteria(critLength, hasLength);
+                updateCriteria(critUpper, hasUpper);
+                updateCriteria(critNumber, hasNumber);
+
+                const score = (hasLength ? 1 : 0) + (hasUpper ? 1 : 0) + (hasNumber ? 1 : 0);
+
+                bar1.style.backgroundColor = score >= 1 ? (score === 1 ? 'var(--error)' : score === 2 ? 'var(--warning)' : 'var(--success)') : 'var(--border-color)';
+                bar2.style.backgroundColor = score >= 2 ? (score === 2 ? 'var(--warning)' : 'var(--success)') : 'var(--border-color)';
+                bar3.style.backgroundColor = score === 3 ? 'var(--success)' : 'var(--border-color)';
+
+                if (score === 0) strengthLabel.textContent = 'None';
+                else if (score === 1) strengthLabel.textContent = 'Weak';
+                else if (score === 2) strengthLabel.textContent = 'Medium';
+                else strengthLabel.textContent = 'Strong';
+
+                return score === 3;
+            }
+
+            function updateCriteria(element, isValid) {
+                if (isValid) {
+                    element.classList.add('valid');
+                    element.querySelector('i').className = 'fa-solid fa-circle-check';
+                } else {
+                    element.classList.remove('valid');
+                    element.querySelector('i').className = 'fa-solid fa-circle';
+                }
+            }
+
+            passwordInput.addEventListener('input', () => {
+                updatePasswordStrength();
+                passwordInput.classList.remove('is-invalid');
+                passwordFeedback.classList.remove('active');
+            });
+
+            confirmInput.addEventListener('input', () => {
+                confirmInput.classList.remove('is-invalid');
+                confirmFeedback.classList.remove('active');
+            });
+
+            fullNameInput.addEventListener('input', () => {
+                fullNameInput.classList.remove('is-invalid');
+                nameFeedback.classList.remove('active');
+            });
+
+            emailInput.addEventListener('input', () => {
+                emailInput.classList.remove('is-invalid');
+                emailFeedback.classList.remove('active');
+            });
+
+            function isValidEmail(val) {
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+            }
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                let hasError = false;
+
+                const name = fullNameInput.value.trim();
+                const email = emailInput.value.trim();
+                const role = roleSelect.value;
+                const password = passwordInput.value;
+                const confirmPass = confirmInput.value;
+                const termsAccepted = termsCheck.checked;
+
+                // Validate Name
+                if (!name) {
+                    fullNameInput.classList.add('is-invalid');
+                    nameFeedback.textContent = 'Please enter your full name.';
+                    nameFeedback.classList.add('active');
+                    hasError = true;
+                }
+
+                // Validate Email
+                if (!email) {
+                    emailInput.classList.add('is-invalid');
+                    emailFeedback.textContent = 'Please enter your email.';
+                    emailFeedback.classList.add('active');
+                    hasError = true;
+                } else if (!isValidEmail(email)) {
+                    emailInput.classList.add('is-invalid');
+                    emailFeedback.textContent = 'Please enter a valid institutional email.';
+                    emailFeedback.classList.add('active');
+                    hasError = true;
+                }
+
+                // Validate Password
+                const isStrong = updatePasswordStrength();
+                if (!password || !isStrong) {
+                    passwordInput.classList.add('is-invalid');
+                    passwordFeedback.textContent = 'Password must meet all 3 strength requirements.';
+                    passwordFeedback.classList.add('active');
+                    hasError = true;
+                }
+
+                // Validate Confirm Password
+                if (password !== confirmPass) {
+                    confirmInput.classList.add('is-invalid');
+                    confirmFeedback.textContent = 'Passwords do not match.';
+                    confirmFeedback.classList.add('active');
+                    hasError = true;
+                }
+
+                // Validate Terms
+                if (!termsAccepted) {
+                    termsFeedback.textContent = 'You must accept the institutional terms to register.';
+                    termsFeedback.classList.add('active');
+                    hasError = true;
+                } else {
+                    termsFeedback.classList.remove('active');
+                }
+
+                if (hasError) return;
+
+                // Set Loading State
+                submitBtn.disabled = true;
+                btnSpinner.classList.add('active');
+                btnText.textContent = 'Creating account...';
+                signupAlert.classList.remove('active');
+
+                try {
+                    await window.AuthService.signup({
+                        fullName: name,
+                        email: email,
+                        role: role,
+                        password: password
+                    });
+
+                    btnText.textContent = 'Workspace ready! Redirecting...';
+                    window.location.replace('../teacher-dashboard.html');
+                } catch (err) {
+                    submitBtn.disabled = false;
+                    btnSpinner.classList.remove('active');
+                    btnText.textContent = 'Create Account';
+
+                    signupAlertMsg.textContent = err.message || 'An error occurred during account creation.';
+                    signupAlert.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
 </html>

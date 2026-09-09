@@ -1,78 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Email Verified | Smart Attendance ERP</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification | Smart Attendance ERP</title>
+    <!-- Google Fonts Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6.5.1 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Authentication ERP Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
     <div class="page-shell">
-      <header class="topbar">
-        <a class="brand" href="login.html">
-          <span class="brand-mark"><i class="bi bi-shield-check"></i></span>
-          <span>Smart Attendance ERP</span>
-        </a>
-        <nav class="topbar-nav" aria-label="Quick links">
-          <a href="#">Help</a>
-          <a href="#">Contact Support</a>
-          <a href="#" class="lang-pill">EN</a>
-        </nav>
-      </header>
+        <!-- Top Navigation Header -->
+        <header class="topbar">
+            <a class="brand" href="login.html">
+                <div class="brand-mark">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="brand-text-wrap">
+                    <span class="brand-name">Smart Attendance</span>
+                    <span class="brand-sub">College ERP Portal</span>
+                </div>
+            </a>
+            <nav class="topbar-nav" aria-label="Portal links">
+                <a href="#"><i class="fa-regular fa-circle-question me-1"></i> Help</a>
+                <a href="#"><i class="fa-solid fa-headset me-1"></i> Support</a>
+                <span class="lang-pill">Academic ERP</span>
+            </nav>
+        </header>
 
-      <main class="auth-layout">
-        <section class="hero-panel" aria-label="Success overview">
-          <div class="hero-content">
-            <span class="hero-eyebrow">Account ready</span>
-            <h1 class="hero-title">Everything is set up</h1>
-            <p class="hero-text">
-              Your account has been verified successfully and you can now continue using the platform.
-            </p>
-            <div class="feature-grid">
-              <div class="feature-card"><i class="bi bi-check2-circle"></i><span>Verified Email</span></div>
-              <div class="feature-card"><i class="bi bi-person-check-fill"></i><span>Profile Ready</span></div>
-              <div class="feature-card"><i class="bi bi-hdd-network-fill"></i><span>Secure Sync</span></div>
-              <div class="feature-card"><i class="bi bi-magic"></i><span>Fast Setup</span></div>
+        <!-- Main Split Authentication Layout -->
+        <main class="auth-layout">
+            
+            <!-- Left Side: Product Branding & Overview -->
+            <section class="hero-panel" aria-label="Account Verification">
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <i class="fa-solid fa-envelope-circle-check"></i> Account Verification
+                    </div>
+                    <h1 class="hero-title">Verify your email</h1>
+                    <p class="hero-tagline">"Confirm your institutional affiliation."</p>
+                    <p class="hero-text">
+                        A quick verification ensures all parent SMS alerts, student attendance digests, and academic rosters remain confidential and properly routed.
+                    </p>
+
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <i class="fa-solid fa-envelope-open-text"></i>
+                            <span>Direct Link Delivery</span>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fa-solid fa-clock"></i>
+                            <span>Rapid Activation</span>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fa-solid fa-user-shield"></i>
+                            <span>Spam Protection</span>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fa-solid fa-school"></i>
+                            <span>Campus Sync</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-footer-note">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>College IT Security Protocols &bull; ERP v2.4</span>
+                </div>
+            </section>
+
+            <!-- Right Side: Email Verification Card -->
+            <section class="auth-card-panel">
+                <div class="auth-card">
+                    
+                    <div class="auth-card-head text-center">
+                        <div style="width: 52px; height: 52px; background-color: var(--primary-light); color: var(--primary); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 1rem;">
+                            <i class="fa-regular fa-envelope"></i>
+                        </div>
+                        <span class="auth-eyebrow">Verification Required</span>
+                        <h2 class="auth-title">Check your inbox</h2>
+                        <p class="auth-desc">We've sent a verification link to your registered institutional email address. Please click the link to activate your workspace.</p>
+                    </div>
+
+                    <!-- Resend Notification Banner -->
+                    <div class="auth-alert auth-alert-success" id="resendAlert">
+                        <i class="fa-solid fa-circle-check mt-1"></i>
+                        <span>A fresh verification link has been sent to your email.</span>
+                    </div>
+
+                    <div class="form-section mt-2">
+                        <!-- Simulate Instant Verification Button for testing/demo flow -->
+                        <button type="button" class="btn-submit" id="verifyNowBtn">
+                            <i class="fa-solid fa-circle-check me-1"></i> Confirm & Continue to Dashboard
+                        </button>
+
+                        <!-- Resend Button with 60s cooldown timer -->
+                        <button type="button" class="btn-secondary-action" id="resendBtn">
+                            <i class="fa-solid fa-rotate-right me-1"></i> <span id="resendText">Resend verification email</span>
+                        </button>
+
+                        <a href="login.html" class="btn-secondary-action" style="margin-top: 0.25rem;">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Back to Sign In
+                        </a>
+                    </div>
+
+                    <div class="auth-footer-links">
+                        <span>Need to use a 6-digit OTP code instead?</span>
+                        <a href="otp-verification.html">Verify with OTP</a>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>&copy; 2026 Smart Attendance ERP &bull; Academic Portal</span>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Security Guidelines</a>
             </div>
-          </div>
-        </section>
-
-        <section class="auth-card-panel">
-          <div class="auth-card">
-            <div class="auth-card-head">
-              <span class="eyebrow">Email verification</span>
-              <h2>Email verified successfully</h2>
-              <p>Your identity is confirmed and your account is ready to use.</p>
-            </div>
-
-            <div class="success-card">
-              <i class="bi bi-check-circle-fill"></i>
-              <span>Your email address has been verified successfully.</span>
-            </div>
-
-            <div class="info-card">
-              <strong>Next step</strong>
-              <p class="mb-0 mt-2">Continue to login and start managing your attendance operations.</p>
-            </div>
-
-            <a class="btn btn-primary w-100 mt-3" href="login.html">Continue to login</a>
-            <a class="btn btn-outline w-100 mt-2" href="email-verification.html">Resend email</a>
-          </div>
-        </section>
-      </main>
-
-      <footer class="footer">
-        <span>© 2026 Smart Attendance ERP</span>
-        <div class="footer-links">
-          <a href="#">Privacy Policy</a>
-          <a href="#">Terms</a>
-          <a href="#">Help Center</a>
-          <a href="#">Contact</a>
-        </div>
-      </footer>
+        </footer>
     </div>
-  </body>
+
+    <!-- Core Authentication Controller -->
+    <script src="../auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const resendBtn = document.getElementById('resendBtn');
+            const resendText = document.getElementById('resendText');
+            const resendAlert = document.getElementById('resendAlert');
+            const verifyNowBtn = document.getElementById('verifyNowBtn');
+
+            let countdown = 0;
+            let timerInterval = null;
+
+            resendBtn.addEventListener('click', () => {
+                if (countdown > 0) return;
+
+                resendAlert.classList.add('active');
+                countdown = 60;
+                resendBtn.disabled = true;
+                updateButtonText();
+
+                timerInterval = setInterval(() => {
+                    countdown--;
+                    if (countdown <= 0) {
+                        clearInterval(timerInterval);
+                        resendBtn.disabled = false;
+                        resendText.textContent = 'Resend verification email';
+                    } else {
+                        updateButtonText();
+                    }
+                }, 1000);
+            });
+
+            function updateButtonText() {
+                resendText.textContent = `Resend available in (${countdown}s)`;
+            }
+
+            verifyNowBtn.addEventListener('click', () => {
+                verifyNowBtn.disabled = true;
+                verifyNowBtn.innerHTML = '<span class="btn-spinner active me-2"></span> Finalizing verification...';
+                setTimeout(() => {
+                    window.location.replace('../teacher-dashboard.html');
+                }, 600);
+            });
+        });
+    </script>
+</body>
 </html>

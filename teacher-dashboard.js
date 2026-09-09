@@ -4,6 +4,11 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Profile & Authentication State Sync ---
+    if (window.AuthService) {
+        window.AuthService.syncProfileUI();
+    }
+
     // --- Dark/Light Mode Theme Toggle ---
     const themeToggleBtn = document.getElementById('themeToggle');
     const htmlElement = document.documentElement;
@@ -209,12 +214,14 @@ function viewStudentDetails(studentName, rollNo) {
     document.getElementById('modalStudentName').textContent = studentName;
     document.getElementById('modalStudentRoll').textContent = `Roll No: ${student.roll} | ${student.class}`;
     
-    const attendanceVal = document.querySelector('#studentDetailModal .text-success');
-    attendanceVal.textContent = student.attendance;
-    if (parseFloat(student.attendance) < 75) {
-        attendanceVal.className = 'fw-bold text-danger';
-    } else {
-        attendanceVal.className = 'fw-bold text-success';
+    const attendanceVal = document.getElementById('modalStudentAttendance') || document.querySelector('#studentDetailModal .text-success, #studentDetailModal .text-danger');
+    if (attendanceVal) {
+        attendanceVal.textContent = student.attendance;
+        if (parseFloat(student.attendance) < 75) {
+            attendanceVal.className = 'fw-bold text-danger';
+        } else {
+            attendanceVal.className = 'fw-bold text-success';
+        }
     }
 
     const lecturesVal = document.querySelector('#studentDetailModal .row .col-6:nth-child(2) span:last-child');
@@ -251,10 +258,17 @@ function simulateContactParent() {
     }
 }
 
-// --- Logout Simulation ---
+// --- Logout Handler ---
 function simulateLogout() {
     if (confirm("Are you sure you want to logout of Smart Attendance ERP?")) {
-        showToast("Logged out successfully! Redirecting simulated...", "info");
+        showToast("Logging out...", "info");
+        setTimeout(() => {
+            if (window.AuthService) {
+                window.AuthService.logout('Authentication/login.html');
+            } else {
+                window.location.replace('Authentication/login.html');
+            }
+        }, 350);
     }
 }
 
@@ -276,13 +290,13 @@ function showToast(message, type = 'info') {
     }
 
     // Colors according to toast type
-    let bgColor = 'var(--primary)';
-    let icon = '<i class="fa-solid fa-info-circle me-2"></i>';
+    let bgColor = 'var(--primary-dark)';
+    let icon = '<i class="fa-solid fa-circle-info me-2"></i>';
     if (type === 'success') {
-        bgColor = 'var(--success)';
+        bgColor = 'var(--present)';
         icon = '<i class="fa-solid fa-circle-check me-2"></i>';
     } else if (type === 'error') {
-        bgColor = 'var(--danger)';
+        bgColor = 'var(--absent)';
         icon = '<i class="fa-solid fa-circle-xmark me-2"></i>';
     }
 
@@ -290,14 +304,15 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.style.background = bgColor;
     toast.style.color = '#ffffff';
-    toast.style.padding = '0.85rem 1.5rem';
-    toast.style.borderRadius = '12px';
-    toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
-    toast.style.fontSize = '0.85rem';
+    toast.style.padding = '0.75rem 1.25rem';
+    toast.style.borderRadius = '8px';
+    toast.style.border = '1px solid rgba(255, 255, 255, 0.15)';
+    toast.style.boxShadow = '0 8px 24px rgba(18, 52, 59, 0.2)';
+    toast.style.fontSize = '0.825rem';
     toast.style.fontWeight = '500';
     toast.style.display = 'flex';
     toast.style.alignItems = 'center';
-    toast.style.animation = 'fadeIn 0.3s ease forwards';
+    toast.style.animation = 'fadeIn 0.25s ease forwards';
     toast.style.minWidth = '280px';
     toast.style.maxWidth = '380px';
 
