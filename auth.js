@@ -95,37 +95,49 @@
         },
 
         /**
-         * Authenticate user with email and password
+         * Authenticate user with backend API
          */
         login: function (email, password, rememberMe = false) {
             return new Promise((resolve, reject) => {
-                // Simulate realistic network latency
-                setTimeout(() => {
-                    const cleanEmail = (email || '').trim().toLowerCase();
-                    const cleanPass = (password || '').trim();
+                const cleanEmail = (email || '').trim().toLowerCase();
+                const cleanPass = (password || '').trim();
 
-                    if (!cleanEmail || !cleanPass) {
-                        return reject(new Error('Please enter both email and password.'));
+                if (!cleanEmail || !cleanPass) {
+                    return reject(new Error('Please enter both email and password.'));
+                }
+
+                // Call the actual Flask backend API
+                fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: cleanEmail, // Backend expects username or email here
+                        password: cleanPass
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Invalid email or password.');
                     }
-
-                    const users = getRegisteredUsers();
-                    // Match against registered users or allow default test credentials
-                    const matchedUser = users.find(u => u.email.toLowerCase() === cleanEmail);
-
-                    if (matchedUser && matchedUser.passwordHash === cleanPass) {
-                        const token = generateToken(matchedUser.id);
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.message === 'Login successful') {
+                        const token = generateToken(data.user.user_id);
                         const expiresAt = Date.now() + (rememberMe ? 7 * 24 : SESSION_EXPIRY_HOURS) * 60 * 60 * 1000;
 
                         const session = {
                             token: token,
                             user: {
-                                id: matchedUser.id,
-                                name: matchedUser.name,
-                                email: matchedUser.email,
-                                role: matchedUser.role,
-                                department: matchedUser.department || 'Academic Department',
-                                designation: matchedUser.designation || 'Lecturer',
-                                avatar: matchedUser.avatar || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=120'
+                                id: data.user.user_id,
+                                name: data.user.full_name,
+                                email: cleanEmail,
+                                role: data.user.role,
+                                department: 'Computer Science', // Default for now
+                                designation: data.user.role === 'teacher' ? 'Faculty Member' : 'User',
+                                avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=120'
                             },
                             rememberMe: rememberMe,
                             expiresAt: expiresAt
@@ -139,10 +151,12 @@
 
                         resolve(session);
                     } else {
-                        // Secure generic error message
-                        reject(new Error('Invalid email or password.'));
+                        reject(new Error(data.error || 'Authentication failed.'));
                     }
-                }, 400);
+                })
+                .catch(error => {
+                    reject(new Error(error.message || 'Error connecting to server.'));
+                });
             });
         },
 

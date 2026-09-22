@@ -160,6 +160,7 @@ a {
     flex-direction: column;
     justify-content: space-between;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease, border-color 0.25s ease;
+    overflow-x: hidden;
 }
 
 /* Sidebar Logo */
@@ -506,6 +507,28 @@ a {
     flex: 1;
 }
 
+/* --- SPA Sections --- */
+.spa-section {
+    display: none;
+    width: 100%;
+}
+
+.spa-section.active {
+    display: block;
+    animation: fadeInSection 0.25s ease-in-out;
+}
+
+@keyframes fadeInSection {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* --- Dashboard Cards (Enterprise Baseline) --- */
 .dashboard-card {
     background-color: var(--bg-card);
@@ -805,6 +828,54 @@ a {
     background-color: var(--primary-hover);
     border-color: var(--primary-hover);
     color: #FFFFFF;
+}
+
+/* --- Segmented Attendance Status Toggle Buttons --- */
+.status-btn-group {
+    display: inline-flex;
+    gap: 4px;
+    background-color: var(--bg-app);
+    padding: 3px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.status-btn {
+    border: none;
+    background: transparent;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.775rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.status-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
+}
+
+.status-btn.btn-present.active {
+    background-color: var(--present);
+    color: #FFFFFF;
+    box-shadow: 0 2px 5px rgba(46, 125, 91, 0.3);
+}
+
+.status-btn.btn-absent.active {
+    background-color: var(--absent);
+    color: #FFFFFF;
+    box-shadow: 0 2px 5px rgba(201, 76, 76, 0.3);
+}
+
+.status-btn.btn-late.active {
+    background-color: var(--pending);
+    color: #FFFFFF;
+    box-shadow: 0 2px 5px rgba(217, 144, 47, 0.3);
 }
 
 .btn-outline-custom {

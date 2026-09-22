@@ -115,11 +115,102 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // --- History Filter Event Listeners ---
+    const historyDateInput = document.getElementById('historyDateInput');
+    const historyLectureSelect = document.getElementById('historyLectureSelect');
+    const historyStatusSelect = document.getElementById('historyStatusSelect');
+
+    if (historyDateInput) historyDateInput.addEventListener('change', filterAttendanceHistory);
+    if (historyLectureSelect) historyLectureSelect.addEventListener('change', filterAttendanceHistory);
+    if (historyStatusSelect) historyStatusSelect.addEventListener('change', filterAttendanceHistory);
 });
+
+// --- Client-side Datasets (No Database Required) ---
+const mockLectures = [
+    { id: "DS", timetable_id: 1, class_id: 101, code: "DS", name: "Data Structures", className: "SY Computer A", time: "09:00 AM" },
+    { id: "OS", timetable_id: 2, class_id: 102, code: "OS", name: "Operating Systems", className: "TY IT B", time: "11:15 AM" },
+    { id: "SE", timetable_id: 3, class_id: 101, code: "SE", name: "Software Engineering", className: "SY Computer A", time: "02:00 PM" },
+    { id: "ML", timetable_id: 4, class_id: 103, code: "ML", name: "Machine Learning", className: "Final Year CS", time: "03:45 PM" }
+];
+
+const mockStudentsByClass = {
+    101: [ // SY Computer A
+        { student_id: 101, roll_number: "101", full_name: "Rahul Sharma" },
+        { student_id: 102, roll_number: "102", full_name: "Amit Patil" },
+        { student_id: 103, roll_number: "103", full_name: "Sneha Kulkarni" },
+        { student_id: 104, roll_number: "104", full_name: "Vikram Singh" },
+        { student_id: 105, roll_number: "105", full_name: "Priya Joshi" },
+        { student_id: 106, roll_number: "106", full_name: "Rohan Mehta" },
+        { student_id: 107, roll_number: "107", full_name: "Neha Shinde" }
+    ],
+    102: [ // TY IT B
+        { student_id: 201, roll_number: "201", full_name: "Aarav Gupta" },
+        { student_id: 202, roll_number: "202", full_name: "Ananya Deshmukh" },
+        { student_id: 203, roll_number: "203", full_name: "Siddharth Rao" },
+        { student_id: 204, roll_number: "204", full_name: "Tanvi Kadam" },
+        { student_id: 205, roll_number: "205", full_name: "Yash Pawar" }
+    ],
+    103: [ // Final Year CS
+        { student_id: 301, roll_number: "301", full_name: "Aditya Joshi" },
+        { student_id: 302, roll_number: "302", full_name: "Pooja Nair" },
+        { student_id: 303, roll_number: "303", full_name: "Ishaan Verma" },
+        { student_id: 304, roll_number: "304", full_name: "Diya Shah" },
+        { student_id: 305, roll_number: "305", full_name: "Sameer Khan" }
+    ]
+};
+
+const todayStr = new Date().toISOString().split('T')[0];
+
+function generateInitialAttendanceHistory() {
+    const saved = localStorage.getItem('smart_attendance_history');
+    if (saved) {
+        try { return JSON.parse(saved); } catch(e) {}
+    }
+    
+    // Rich default mock dataset matching standard academic schedule
+    const records = [
+        // Today - Data Structures
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Rahul Sharma", roll_number: "101", status: "present" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Amit Patil", roll_number: "102", status: "present" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Sneha Kulkarni", roll_number: "103", status: "absent" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Vikram Singh", roll_number: "104", status: "present" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Priya Joshi", roll_number: "105", status: "present" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Rohan Mehta", roll_number: "106", status: "absent" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Neha Shinde", roll_number: "107", status: "present" },
+
+        // Today - Software Engineering
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Rahul Sharma", roll_number: "101", status: "present" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Amit Patil", roll_number: "102", status: "present" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Sneha Kulkarni", roll_number: "103", status: "present" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Vikram Singh", roll_number: "104", status: "absent" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Priya Joshi", roll_number: "105", status: "present" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Rohan Mehta", roll_number: "106", status: "late" },
+        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Neha Shinde", roll_number: "107", status: "present" },
+
+        // Today - Operating Systems
+        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Aarav Gupta", roll_number: "201", status: "present" },
+        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Ananya Deshmukh", roll_number: "202", status: "present" },
+        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Siddharth Rao", roll_number: "203", status: "absent" },
+        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Tanvi Kadam", roll_number: "204", status: "present" },
+        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Yash Pawar", roll_number: "205", status: "present" },
+
+        // Today - Machine Learning
+        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Aditya Joshi", roll_number: "301", status: "present" },
+        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Pooja Nair", roll_number: "302", status: "present" },
+        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Ishaan Verma", roll_number: "303", status: "late" },
+        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Diya Shah", roll_number: "304", status: "present" },
+        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Sameer Khan", roll_number: "305", status: "absent" }
+    ];
+
+    localStorage.setItem('smart_attendance_history', JSON.stringify(records));
+    return records;
+}
+
+let attendanceHistoryStore = generateInitialAttendanceHistory();
 
 // --- Navigation Item Click & Header Update Simulation ---
 function simulateNav(moduleName) {
-    // Update active menu link
     const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
     menuItems.forEach(item => {
         const link = item.querySelector('.menu-item-link');
@@ -130,18 +221,277 @@ function simulateNav(moduleName) {
         }
     });
 
-    // Update Top Title
     const pageTitle = document.getElementById('pageTitle');
-    pageTitle.textContent = moduleName;
+    if (pageTitle) pageTitle.textContent = moduleName;
 
-    // Toast Notice
-    showToast(`Navigated to ${moduleName} module (Frontend Demo Only)`, 'info');
+    const allSections = document.querySelectorAll('.spa-section');
+    allSections.forEach(sec => {
+        sec.style.display = 'none';
+        sec.classList.remove('active');
+    });
 
-    // Close Mobile Sidebar if open
+    const sectionId = 'section-' + moduleName.replace(/\s+/g, '');
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+        setTimeout(() => targetSection.classList.add('active'), 50);
+        
+        if (moduleName === 'Dashboard') {
+            loadDashboardStats();
+        } else if (moduleName === 'My Classes') {
+            loadMyClasses();
+        } else if (moduleName === 'Mark Attendance') {
+            loadAttendanceForm();
+        } else if (moduleName === 'Attendance History') {
+            loadAttendanceHistory();
+        }
+    } else {
+        showToast(`Section ${moduleName} not found.`, 'error');
+    }
+
     const sidebarMenu = document.getElementById('sidebarMenu');
     const sidebarBackdrop = document.getElementById('sidebarBackdrop');
-    sidebarMenu.classList.remove('active');
-    sidebarBackdrop.classList.remove('active');
+    if (sidebarMenu) sidebarMenu.classList.remove('active');
+    if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+}
+
+// --- Data Loaders ---
+function loadDashboardStats() {
+    // Stats remain populated by HTML template
+}
+
+function loadMyClasses() {
+    const tbody = document.querySelector('#myClassesTable tbody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td class="fw-medium">SY Computer A</td>
+                <td>Data Structures</td>
+                <td>Sem 3</td>
+                <td>7 Students</td>
+            </tr>
+            <tr>
+                <td class="fw-medium">SY Computer A</td>
+                <td>Software Engineering</td>
+                <td>Sem 3</td>
+                <td>7 Students</td>
+            </tr>
+            <tr>
+                <td class="fw-medium">TY IT B</td>
+                <td>Operating Systems</td>
+                <td>Sem 5</td>
+                <td>5 Students</td>
+            </tr>
+            <tr>
+                <td class="fw-medium">Final Year CS</td>
+                <td>Machine Learning</td>
+                <td>Sem 7</td>
+                <td>5 Students</td>
+            </tr>
+        `;
+    }
+}
+
+function loadAttendanceForm() {
+    const dateInput = document.getElementById('markAttDate');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = todayStr;
+    }
+    
+    const select = document.getElementById('markAttLecture');
+    if (select) {
+        select.innerHTML = '<option value="">Select a lecture...</option>';
+        mockLectures.forEach(l => {
+            select.innerHTML += `<option value="${l.id}" data-classid="${l.class_id}">${l.time} - ${l.name} (${l.className})</option>`;
+        });
+    }
+}
+
+function fetchStudentsForAttendance() {
+    const select = document.getElementById('markAttLecture');
+    const dateStr = document.getElementById('markAttDate').value;
+    if (!select || !select.value || !dateStr) {
+        showToast('Please select date and lecture.', 'error');
+        return;
+    }
+    
+    const selectedOpt = select.options[select.selectedIndex];
+    const classId = selectedOpt.getAttribute('data-classid');
+    const lecture = mockLectures.find(l => l.id === select.value);
+    const students = mockStudentsByClass[classId] || [];
+    
+    window.currentAttLecture = lecture;
+    window.currentAttStudents = students;
+    
+    const countLabel = document.getElementById('markAttCountLabel');
+    if (countLabel && lecture) {
+        countLabel.textContent = `Roll Call for ${lecture.name} (${lecture.className}) - ${students.length} Students`;
+    }
+
+    document.getElementById('markAttStudentsContainer').style.display = 'block';
+    const tbody = document.querySelector('#markAttendanceTable tbody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        students.forEach(s => {
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-semibold text-secondary" style="font-size: 13px;">${s.roll_number}</td>
+                    <td class="fw-medium">${s.full_name}</td>
+                    <td>
+                        <div class="status-btn-group" data-studentid="${s.student_id}" data-studentname="${s.full_name}" data-roll="${s.roll_number}" data-status="present">
+                            <button type="button" class="status-btn btn-present active" onclick="setStudentStatus(this, 'present')">
+                                <i class="fa-solid fa-circle-check"></i> Present
+                            </button>
+                            <button type="button" class="status-btn btn-absent" onclick="setStudentStatus(this, 'absent')">
+                                <i class="fa-solid fa-circle-xmark"></i> Absent
+                            </button>
+                            <button type="button" class="status-btn btn-late" onclick="setStudentStatus(this, 'late')">
+                                <i class="fa-solid fa-clock"></i> Late
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+}
+
+function setStudentStatus(btnEl, status) {
+    const group = btnEl.closest('.status-btn-group');
+    if (!group) return;
+    
+    group.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+    btnEl.classList.add('active');
+    group.setAttribute('data-status', status);
+}
+
+function markAll(status) {
+    document.querySelectorAll('.status-btn-group').forEach(group => {
+        const targetBtn = group.querySelector(`.btn-${status}`);
+        if (targetBtn) {
+            setStudentStatus(targetBtn, status);
+        }
+    });
+    showToast(`Marked all students as **${status.toUpperCase()}**`, 'info');
+}
+
+function submitAttendance() {
+    const select = document.getElementById('markAttLecture');
+    const dateStr = document.getElementById('markAttDate').value;
+    const lecture = window.currentAttLecture;
+    if (!lecture || !dateStr) return;
+
+    const groups = document.querySelectorAll('.status-btn-group');
+    if (groups.length === 0) return;
+
+    // Filter out previous records for this date and subject
+    attendanceHistoryStore = attendanceHistoryStore.filter(r => !(r.attendance_date === dateStr && r.subject_code === lecture.code));
+
+    groups.forEach(group => {
+        const studentName = group.getAttribute('data-studentname');
+        const rollNo = group.getAttribute('data-roll');
+        const status = group.getAttribute('data-status') || 'present';
+
+        attendanceHistoryStore.unshift({
+            attendance_date: dateStr,
+            class_name: lecture.className,
+            subject_code: lecture.code,
+            subject_name: lecture.name,
+            student_name: studentName,
+            roll_number: rollNo,
+            status: status
+        });
+    });
+
+    localStorage.setItem('smart_attendance_history', JSON.stringify(attendanceHistoryStore));
+    showToast(`Attendance recorded successfully for **${lecture.name}**!`, 'success');
+}
+
+function loadAttendanceHistory() {
+    const dateInput = document.getElementById('historyDateInput');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = todayStr;
+    }
+    filterAttendanceHistory();
+}
+
+function filterAttendanceHistory() {
+    const selectedDate = document.getElementById('historyDateInput').value;
+    const selectedLectureCode = document.getElementById('historyLectureSelect').value;
+    const selectedStatus = document.getElementById('historyStatusSelect').value;
+
+    let filtered = [...attendanceHistoryStore];
+
+    // Filter by Date if selected
+    if (selectedDate) {
+        filtered = filtered.filter(r => r.attendance_date === selectedDate);
+    }
+
+    // Filter by Lecture/Subject code if selected (not ALL)
+    if (selectedLectureCode && selectedLectureCode !== 'ALL') {
+        filtered = filtered.filter(r => r.subject_code === selectedLectureCode);
+    }
+
+    // Filter by Status if selected (not ALL)
+    if (selectedStatus && selectedStatus !== 'ALL') {
+        filtered = filtered.filter(r => r.status === selectedStatus);
+    }
+
+    // Calculate Summary Stats
+    const totalCount = filtered.length;
+    const presentCount = filtered.filter(r => r.status === 'present').length;
+    const absentCount = filtered.filter(r => r.status === 'absent').length;
+    const rate = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) + '%' : '0%';
+
+    const totalEl = document.getElementById('historyTotalCount');
+    const presentEl = document.getElementById('historyPresentCount');
+    const absentEl = document.getElementById('historyAbsentCount');
+    const rateEl = document.getElementById('historyRate');
+
+    if (totalEl) totalEl.textContent = totalCount;
+    if (presentEl) presentEl.textContent = presentCount;
+    if (absentEl) absentEl.textContent = absentCount;
+    if (rateEl) rateEl.textContent = rate;
+
+    // Render Table Rows
+    const tbody = document.querySelector('#attendanceHistoryTableData tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-folder-open d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                    No attendance records found for the selected Date & Lecture.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    filtered.forEach(row => {
+        let badgeClass = 'status-present';
+        let statusLabel = 'Present';
+        if (row.status === 'absent') {
+            badgeClass = 'status-absent';
+            statusLabel = 'Absent';
+        } else if (row.status === 'late') {
+            badgeClass = 'status-late';
+            statusLabel = 'Late';
+        }
+
+        tbody.innerHTML += `
+            <tr>
+                <td class="fw-semibold text-secondary" style="font-size: 12px;">${row.attendance_date}</td>
+                <td><span class="fw-medium">${row.class_name}</span></td>
+                <td>${row.subject_name}</td>
+                <td class="fw-medium">${row.student_name} <span class="text-muted" style="font-size: 11px;">(Roll: ${row.roll_number})</span></td>
+                <td><span class="status-badge ${badgeClass}">${statusLabel}</span></td>
+            </tr>
+        `;
+    });
 }
 
 // --- Quick Actions Click Simulations ---
