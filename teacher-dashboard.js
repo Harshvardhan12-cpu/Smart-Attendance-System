@@ -124,7 +124,497 @@ document.addEventListener('DOMContentLoaded', () => {
     if (historyDateInput) historyDateInput.addEventListener('change', filterAttendanceHistory);
     if (historyLectureSelect) historyLectureSelect.addEventListener('change', filterAttendanceHistory);
     if (historyStatusSelect) historyStatusSelect.addEventListener('change', filterAttendanceHistory);
+
+    // Initialize Today's Schedule on load
+    initTodaySchedule();
 });
+
+// --- Today's Schedule Management & Persistence ---
+const STORAGE_KEY_SCHEDULE = 'smart_attendance_today_schedule';
+const DIVISION_OPTIONS = [
+    "SY Computer A",
+    "SY Computer B",
+    "TY IT A",
+    "TY IT B",
+    "Final Year CS"
+];
+
+const DEFAULT_TODAY_SCHEDULE = [
+    {
+        id: "sch_1",
+        time: "09:00 AM",
+        subject: "Data Structures",
+        className: "SY Computer A",
+        room: "Lab 5",
+        status: "Completed"
+    },
+    {
+        id: "sch_2",
+        time: "11:15 AM",
+        subject: "Operating Systems",
+        className: "TY IT B",
+        room: "Room 302",
+        status: "Completed"
+    },
+    {
+        id: "sch_3",
+        time: "02:00 PM",
+        subject: "Software Engineering",
+        className: "SY Computer A",
+        room: "Room 204",
+        status: "Pending"
+    },
+    {
+        id: "sch_4",
+        time: "03:45 PM",
+        subject: "Machine Learning",
+        className: "Final Year CS",
+        room: "Lab 2",
+        status: "Upcoming"
+    }
+];
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatTimeRange(timeStr) {
+    if (!timeStr) return "Scheduled";
+    if (timeStr.includes("–") || timeStr.includes("-")) {
+        return timeStr;
+    }
+    const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return timeStr;
+    let hour = parseInt(match[1], 10);
+    const min = match[2];
+    let ampm = match[3].toUpperCase();
+    
+    let endHour = hour + 1;
+    let endAmpm = ampm;
+    if (endHour === 12) {
+        endAmpm = (ampm === 'AM') ? 'PM' : 'AM';
+    } else if (endHour > 12) {
+        endHour = endHour - 12;
+    }
+    const padHour = String(endHour).padStart(2, '0');
+    return `${timeStr} – ${padHour}:${min} ${endAmpm}`;
+}
+
+function formatNextLectureTime(currentTimeStr) {
+    if (!currentTimeStr) return '04:30 PM';
+    const match = currentTimeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return '04:30 PM';
+    let hour = parseInt(match[1], 10);
+    const min = match[2];
+    let ampm = match[3].toUpperCase();
+    hour = hour + 1;
+    if (hour === 12) {
+        ampm = (ampm === 'AM') ? 'PM' : 'AM';
+    } else if (hour > 12) {
+        hour = hour - 12;
+    }
+    return `${String(hour).padStart(2, '0')}:${min} ${ampm}`;
+}
+
+function getTodaySchedule() {
+    const saved = localStorage.getItem(STORAGE_KEY_SCHEDULE);
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+        } catch (e) {
+            console.error("Error reading stored schedule:", e);
+        }
+    }
+    return JSON.parse(JSON.stringify(DEFAULT_TODAY_SCHEDULE));
+}
+
+function renderTodaySchedule(schedule) {
+    const tbody = document.getElementById('todayScheduleTbody');
+    if (!tbody) return;
+
+    if (!schedule || schedule.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4 text-muted">
+                    <i class="fa-regular fa-calendar-xmark d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                    No classes scheduled for today. Click <strong>✏️ Edit</strong> above to add lectures.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = schedule.map(item => {
+        let badgeHtml = '';
+        let actionBtnHtml = '';
+        const safeSubject = escapeHtml(item.subject);
+        
+        if (item.status === 'Completed') {
+            badgeHtml = `<span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span>`;
+            actionBtnHtml = `<button class="btn-outline-custom" onclick="triggerAction('View Attendance - ${safeSubject}')"><i class="fa-regular fa-eye"></i> View</button>`;
+        } else if (item.status === 'Pending') {
+            badgeHtml = `<span class="status-badge status-inprogress"><i class="fa-solid fa-rotate"></i> Pending</span>`;
+            actionBtnHtml = `<button class="btn-primary-custom" onclick="simulateNav('Mark Attendance')"><i class="fa-solid fa-clipboard-user"></i> Mark</button>`;
+        } else {
+            badgeHtml = `<span class="status-badge status-upcoming"><i class="fa-regular fa-clock"></i> Upcoming</span>`;
+            actionBtnHtml = `<button class="btn-outline-custom" onclick="triggerAction('Class Details - ${safeSubject}')"><i class="fa-solid fa-arrow-right"></i> Details</button>`;
+        }
+
+        return `
+            <tr>
+                <td class="fw-semibold">${escapeHtml(item.time)}</td>
+                <td class="fw-medium">${safeSubject}</td>
+                <td>${escapeHtml(item.className)}</td>
+                <td>${escapeHtml(item.room)}</td>
+                <td>${badgeHtml}</td>
+                <td class="text-end">${actionBtnHtml}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function updateDashboardScheduleStats(schedule) {
+    const total = schedule.length;
+    const completed = schedule.filter(s => s.status === 'Completed').length;
+    const pending = schedule.filter(s => s.status === 'Pending').length;
+    const remaining = total - completed;
+
+    // 1. Badge next to card title
+    const sessionBadge = document.getElementById('scheduleSessionBadge');
+    if (sessionBadge) {
+        sessionBadge.textContent = `${total} ${total === 1 ? 'Session' : 'Sessions'}`;
+    }
+
+    // 2. Stat 1 (Today's Classes)
+    const statTodayClasses = document.getElementById('statTodayClasses');
+    if (statTodayClasses) {
+        statTodayClasses.textContent = `${total} ${total === 1 ? 'Lecture' : 'Lectures'}`;
+    }
+    const statTodayDesc = document.getElementById('statTodayDesc');
+    if (statTodayDesc) {
+        statTodayDesc.textContent = `${completed} Completed, ${remaining} Remaining`;
+    }
+
+    // 3. Welcome Bar Subtext
+    const welcomeSubtext = document.getElementById('welcomeSubtext');
+    if (welcomeSubtext) {
+        welcomeSubtext.textContent = `You have ${remaining} ${remaining === 1 ? 'class' : 'classes'} remaining today and ${pending} attendance ${pending === 1 ? 'record' : 'records'} pending.`;
+    }
+
+    // 4. Stat 3 (Attendance Submitted)
+    const statAttendanceSubmitted = document.getElementById('statAttendanceSubmitted');
+    if (statAttendanceSubmitted) {
+        statAttendanceSubmitted.textContent = `${completed} / ${total} Classes`;
+    }
+    const statAttendanceSubmittedDesc = document.getElementById('statAttendanceSubmittedDesc');
+    if (statAttendanceSubmittedDesc) {
+        const submitPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        statAttendanceSubmittedDesc.textContent = `${submitPct}% daily submission`;
+    }
+
+    // 5. Stat 6 (Pending Attendance)
+    const statPendingAttendance = document.getElementById('statPendingAttendance');
+    if (statPendingAttendance) {
+        statPendingAttendance.textContent = `${pending} ${pending === 1 ? 'Class' : 'Classes'}`;
+    }
+    const statPendingAttendanceDesc = document.getElementById('statPendingAttendanceDesc');
+    if (statPendingAttendanceDesc) {
+        statPendingAttendanceDesc.textContent = pending > 0 ? 'Due before 05:00 PM' : 'All submitted';
+    }
+
+    // 6. Attendance Summary Widget (Pending Verification)
+    const summaryPendingCount = document.getElementById('summaryPendingCount');
+    if (summaryPendingCount) {
+        summaryPendingCount.textContent = `${pending} ${pending === 1 ? 'Class' : 'Classes'}`;
+    }
+    const summaryPendingBar = document.getElementById('summaryPendingBar');
+    if (summaryPendingBar) {
+        const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
+        summaryPendingBar.style.width = `${pendingPct}%`;
+    }
+
+    // 7. Next Lecture Card
+    const nextLecture = schedule.find(s => s.status === 'Pending') || schedule.find(s => s.status === 'Upcoming');
+    const nextLectureSubject = document.getElementById('nextLectureSubject');
+    const nextLectureTime = document.getElementById('nextLectureTime');
+    const nextLectureClass = document.getElementById('nextLectureClass');
+    const nextLectureRoom = document.getElementById('nextLectureRoom');
+    const nextLectureBadge = document.getElementById('nextLectureBadge');
+
+    if (nextLecture) {
+        if (nextLectureSubject) nextLectureSubject.textContent = nextLecture.subject;
+        if (nextLectureTime) nextLectureTime.textContent = formatTimeRange(nextLecture.time);
+        if (nextLectureClass) nextLectureClass.textContent = nextLecture.className;
+        if (nextLectureRoom) nextLectureRoom.textContent = nextLecture.room;
+        if (nextLectureBadge) {
+            if (nextLecture.status === 'Pending') {
+                nextLectureBadge.className = 'status-badge status-inprogress';
+                nextLectureBadge.textContent = 'Pending';
+            } else {
+                nextLectureBadge.className = 'status-badge status-upcoming';
+                nextLectureBadge.textContent = 'Scheduled';
+            }
+        }
+    } else if (total > 0 && completed === total) {
+        if (nextLectureSubject) nextLectureSubject.textContent = 'All Lectures Completed';
+        if (nextLectureTime) nextLectureTime.textContent = 'No remaining classes today';
+        if (nextLectureClass) nextLectureClass.textContent = '—';
+        if (nextLectureRoom) nextLectureRoom.textContent = '—';
+        if (nextLectureBadge) {
+            nextLectureBadge.className = 'status-badge status-present';
+            nextLectureBadge.textContent = 'Done';
+        }
+    } else {
+        if (nextLectureSubject) nextLectureSubject.textContent = 'No Lectures Scheduled';
+        if (nextLectureTime) nextLectureTime.textContent = 'Click Edit to add classes';
+        if (nextLectureClass) nextLectureClass.textContent = '—';
+        if (nextLectureRoom) nextLectureRoom.textContent = '—';
+        if (nextLectureBadge) {
+            nextLectureBadge.className = 'status-badge status-upcoming';
+            nextLectureBadge.textContent = 'None';
+        }
+    }
+}
+
+function syncMockLecturesWithSchedule(schedule) {
+    if (!Array.isArray(schedule)) return;
+    mockLectures.length = 0;
+    schedule.forEach((item, idx) => {
+        let classId = 101;
+        if (item.className.includes("IT")) classId = 102;
+        else if (item.className.includes("Final")) classId = 103;
+
+        const code = item.subject.split(/\s+/).map(w => w[0]).join('').toUpperCase() || `LEC${idx + 1}`;
+        mockLectures.push({
+            id: item.id || `LEC_${idx + 1}`,
+            timetable_id: idx + 1,
+            class_id: classId,
+            code: code,
+            name: item.subject,
+            className: item.className,
+            time: item.time,
+            status: item.status
+        });
+    });
+}
+
+function initTodaySchedule() {
+    const schedule = getTodaySchedule();
+    renderTodaySchedule(schedule);
+    updateDashboardScheduleStats(schedule);
+    syncMockLecturesWithSchedule(schedule);
+}
+
+// --- Edit Schedule Modal Handlers ---
+function openEditScheduleModal() {
+    const schedule = getTodaySchedule();
+    const tbody = document.getElementById('editScheduleModalTbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    if (schedule.length === 0) {
+        tbody.innerHTML = `
+            <tr id="modalEmptyRow">
+                <td colspan="6" class="text-center py-3 text-muted">
+                    No classes in list. Click <strong>+ Add Class</strong> to insert a class.
+                </td>
+            </tr>
+        `;
+    } else {
+        schedule.forEach(item => {
+            renderModalRow(item);
+        });
+    }
+
+    updateModalSessionBadge();
+    const modalElement = document.getElementById('editScheduleModal');
+    const modalInstance = new bootstrap.Modal(modalElement);
+    modalInstance.show();
+}
+
+function renderModalRow(data = {}) {
+    const tbody = document.getElementById('editScheduleModalTbody');
+    const emptyRow = document.getElementById('modalEmptyRow');
+    if (emptyRow) emptyRow.remove();
+
+    const time = data.time || '10:00 AM';
+    const subject = data.subject || '';
+    const selectedClass = data.className || 'SY Computer A';
+    const room = data.room || 'Room 101';
+    const status = data.status || 'Upcoming';
+    const rowId = data.id || `sch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+
+    // Build division options dropdown
+    let divisionOptions = DIVISION_OPTIONS.slice();
+    if (selectedClass && !divisionOptions.includes(selectedClass)) {
+        divisionOptions.push(selectedClass);
+    }
+    const divisionOptionsHtml = divisionOptions.map(div => `
+        <option value="${escapeHtml(div)}" ${div === selectedClass ? 'selected' : ''}>${escapeHtml(div)}</option>
+    `).join('');
+
+    // Build status options dropdown
+    const statusOptions = ['Completed', 'Pending', 'Upcoming'];
+    const statusOptionsHtml = statusOptions.map(st => `
+        <option value="${st}" ${st === status ? 'selected' : ''}>${st}</option>
+    `).join('');
+
+    const tr = document.createElement('tr');
+    tr.className = 'schedule-edit-row';
+    tr.setAttribute('data-row-id', rowId);
+    tr.innerHTML = `
+        <td>
+            <input type="text" class="form-control schedule-row-time" value="${escapeHtml(time)}" placeholder="09:00 AM">
+        </td>
+        <td>
+            <input type="text" class="form-control schedule-row-subject" value="${escapeHtml(subject)}" placeholder="e.g. Operating Systems">
+        </td>
+        <td>
+            <select class="form-select schedule-row-class">
+                ${divisionOptionsHtml}
+            </select>
+        </td>
+        <td>
+            <input type="text" class="form-control schedule-row-room" value="${escapeHtml(room)}" placeholder="e.g. Room 204">
+        </td>
+        <td>
+            <select class="form-select schedule-row-status">
+                ${statusOptionsHtml}
+            </select>
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn-schedule-delete" title="Delete class" onclick="removeScheduleModalRow(this)">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function addScheduleModalRow() {
+    const existingRows = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row');
+    let nextTime = '04:30 PM';
+    if (existingRows.length > 0) {
+        const lastTimeInput = existingRows[existingRows.length - 1].querySelector('.schedule-row-time');
+        if (lastTimeInput && lastTimeInput.value) {
+            nextTime = formatNextLectureTime(lastTimeInput.value);
+        }
+    }
+
+    renderModalRow({
+        time: nextTime,
+        subject: '',
+        className: 'SY Computer A',
+        room: 'Room 101',
+        status: 'Upcoming'
+    });
+
+    updateModalSessionBadge();
+
+    const rows = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row');
+    if (rows.length > 0) {
+        const newRowSubjectInput = rows[rows.length - 1].querySelector('.schedule-row-subject');
+        if (newRowSubjectInput) newRowSubjectInput.focus();
+    }
+}
+
+function removeScheduleModalRow(btn) {
+    const row = btn.closest('tr');
+    if (row) {
+        row.remove();
+        updateModalSessionBadge();
+        const remainingRows = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row');
+        if (remainingRows.length === 0) {
+            const tbody = document.getElementById('editScheduleModalTbody');
+            tbody.innerHTML = `
+                <tr id="modalEmptyRow">
+                    <td colspan="6" class="text-center py-3 text-muted">
+                        No classes in list. Click <strong>+ Add Class</strong> to insert a class.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+function updateModalSessionBadge() {
+    const badge = document.getElementById('modalSessionBadge');
+    if (!badge) return;
+    const count = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row').length;
+    badge.textContent = `${count} ${count === 1 ? 'Session' : 'Sessions'}`;
+}
+
+function saveScheduleChanges() {
+    const rows = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row');
+    const updatedSchedule = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const timeInput = row.querySelector('.schedule-row-time');
+        const subjectInput = row.querySelector('.schedule-row-subject');
+        const classSelect = row.querySelector('.schedule-row-class');
+        const roomInput = row.querySelector('.schedule-row-room');
+        const statusSelect = row.querySelector('.schedule-row-status');
+        const rowId = row.getAttribute('data-row-id') || `sch_${i + 1}`;
+
+        const time = timeInput ? timeInput.value.trim() : '';
+        const subject = subjectInput ? subjectInput.value.trim() : '';
+        const className = classSelect ? classSelect.value : 'SY Computer A';
+        const room = roomInput ? roomInput.value.trim() : 'Room 101';
+        const status = statusSelect ? statusSelect.value : 'Upcoming';
+
+        if (!time) {
+            showToast(`Please enter a valid time for row #${i + 1}.`, 'error');
+            if (timeInput) timeInput.focus();
+            return;
+        }
+
+        if (!subject) {
+            showToast(`Please enter a subject name for row #${i + 1}.`, 'error');
+            if (subjectInput) subjectInput.focus();
+            return;
+        }
+
+        updatedSchedule.push({
+            id: rowId,
+            time: time,
+            subject: subject,
+            className: className,
+            room: room || 'Room 101',
+            status: status
+        });
+    }
+
+    // Persist to localStorage for current session
+    localStorage.setItem(STORAGE_KEY_SCHEDULE, JSON.stringify(updatedSchedule));
+
+    // Update Today's Schedule Table immediately
+    renderTodaySchedule(updatedSchedule);
+
+    // Update all dashboard cards, statistics, and Next Lecture card
+    updateDashboardScheduleStats(updatedSchedule);
+
+    // Sync mock lectures list
+    syncMockLecturesWithSchedule(updatedSchedule);
+
+    // Close modal
+    const modalElement = document.getElementById('editScheduleModal');
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+    if (modalInstance) {
+        modalInstance.hide();
+    }
+
+    showToast("Today's schedule updated successfully!", "success");
+}
 
 // --- Client-side Datasets (No Database Required) ---
 const mockLectures = [
@@ -257,7 +747,7 @@ function simulateNav(moduleName) {
 
 // --- Data Loaders ---
 function loadDashboardStats() {
-    // Stats remain populated by HTML template
+    initTodaySchedule();
 }
 
 function loadMyClasses() {
@@ -612,6 +1102,7 @@ function simulateContactParent() {
 function simulateLogout() {
     if (confirm("Are you sure you want to logout of Smart Attendance ERP?")) {
         showToast("Logging out...", "info");
+        localStorage.removeItem(STORAGE_KEY_SCHEDULE);
         setTimeout(() => {
             if (window.AuthService) {
                 window.AuthService.logout('Authentication/login.html');
