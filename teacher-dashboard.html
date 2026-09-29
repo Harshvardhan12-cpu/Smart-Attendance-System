@@ -188,7 +188,7 @@
                 <div class="welcome-bar">
                     <div>
                         <h2 class="welcome-greeting">Good morning, Prof. John</h2>
-                        <p class="welcome-subtext">You have 2 classes remaining today and 2 attendance records pending.</p>
+                        <p class="welcome-subtext" id="welcomeSubtext">You have 2 classes remaining today and 2 attendance records pending.</p>
                     </div>
                     <div class="welcome-date-badge">
                         <i class="fa-regular fa-calendar"></i>
@@ -209,8 +209,8 @@
                             <div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div>
                         </div>
                         <div>
-                            <div class="stat-number">4 Lectures</div>
-                            <p class="stat-desc">2 Completed, 2 Remaining</p>
+                            <div class="stat-number" id="statTodayClasses">4 Lectures</div>
+                            <p class="stat-desc" id="statTodayDesc">2 Completed, 2 Remaining</p>
                         </div>
                     </div>
 
@@ -233,8 +233,8 @@
                             <div class="stat-icon"><i class="fa-solid fa-clipboard-check"></i></div>
                         </div>
                         <div>
-                            <div class="stat-number">2 / 4 Classes</div>
-                            <p class="stat-desc">50% daily submission</p>
+                            <div class="stat-number" id="statAttendanceSubmitted">2 / 4 Classes</div>
+                            <p class="stat-desc" id="statAttendanceSubmittedDesc">50% daily submission</p>
                         </div>
                     </div>
 
@@ -269,8 +269,8 @@
                             <div class="stat-icon pending-icon"><i class="fa-solid fa-hourglass-half"></i></div>
                         </div>
                         <div>
-                            <div class="stat-number" style="color: var(--pending);">2 Classes</div>
-                            <p class="stat-desc">Due before 05:00 PM</p>
+                            <div class="stat-number" id="statPendingAttendance" style="color: var(--pending);">2 Classes</div>
+                            <p class="stat-desc" id="statPendingAttendanceDesc">Due before 05:00 PM</p>
                         </div>
                     </div>
 
@@ -286,7 +286,12 @@
                         <div class="dashboard-card">
                             <div class="card-title">
                                 <span><i class="fa-solid fa-calendar-week me-2"></i>Today's Schedule</span>
-                                <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px; font-weight: 600; padding: 0.35rem 0.65rem;">4 Sessions</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge" id="scheduleSessionBadge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px; font-weight: 600; padding: 0.35rem 0.65rem;">4 Sessions</span>
+                                    <button type="button" class="btn-outline-custom" id="editScheduleBtn" onclick="openEditScheduleModal()" style="padding: 0.25rem 0.6rem; font-size: 11.5px; line-height: 1.2;">
+                                        ✏️ Edit
+                                    </button>
+                                </div>
                             </div>
                             
                             <div class="table-responsive">
@@ -301,8 +306,60 @@
                                             <th class="text-end">Action</th>
                                         </tr>
                                     </thead>
+<<<<<<< HEAD
                                     <tbody id="todaysScheduleTableBody">
                                         <!-- Populated dynamically by JS -->
+=======
+                                    <tbody id="todayScheduleTbody">
+                                        <tr>
+                                            <td class="fw-semibold">09:00 AM</td>
+                                            <td class="fw-medium">Data Structures</td>
+                                            <td>SY Computer A</td>
+                                            <td>Lab 5</td>
+                                            <td><span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span></td>
+                                            <td class="text-end">
+                                                <button class="btn-outline-custom" onclick="triggerAction('View Attendance - Data Structures')">
+                                                    <i class="fa-regular fa-eye"></i> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-semibold">11:15 AM</td>
+                                            <td class="fw-medium">Operating Systems</td>
+                                            <td>TY IT B</td>
+                                            <td>Room 302</td>
+                                            <td><span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span></td>
+                                            <td class="text-end">
+                                                <button class="btn-outline-custom" onclick="triggerAction('View Attendance - Operating Systems')">
+                                                    <i class="fa-regular fa-eye"></i> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-semibold">02:00 PM</td>
+                                            <td class="fw-medium">Software Engineering</td>
+                                            <td>SY Computer A</td>
+                                            <td>Room 204</td>
+                                            <td><span class="status-badge status-inprogress"><i class="fa-solid fa-rotate"></i> Pending</span></td>
+                                            <td class="text-end">
+                                                <button class="btn-primary-custom" onclick="simulateNav('Mark Attendance')">
+                                                    <i class="fa-solid fa-clipboard-user"></i> Mark
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-semibold">03:45 PM</td>
+                                            <td class="fw-medium">Machine Learning</td>
+                                            <td>Final Year CS</td>
+                                            <td>Lab 2</td>
+                                            <td><span class="status-badge status-upcoming"><i class="fa-regular fa-clock"></i> Upcoming</span></td>
+                                            <td class="text-end">
+                                                <button class="btn-outline-custom" onclick="triggerAction('Class Details - Machine Learning')">
+                                                    <i class="fa-solid fa-arrow-right"></i> Details
+                                                </button>
+                                            </td>
+                                        </tr>
+>>>>>>> 56302641bed2b614b93770370b233f334a44ba52
                                     </tbody>
                                 </table>
                             </div>
@@ -518,13 +575,13 @@
                         <div class="dashboard-card next-lecture-card">
                             <div class="next-lecture-header">
                                 <span class="next-lecture-label"><i class="fa-regular fa-bell me-1"></i> Next Lecture</span>
-                                <span class="status-badge status-upcoming">Scheduled</span>
+                                <span class="status-badge status-upcoming" id="nextLectureBadge">Scheduled</span>
                             </div>
-                            <div class="next-lecture-subject">Software Engineering</div>
+                            <div class="next-lecture-subject" id="nextLectureSubject">Software Engineering</div>
                             <div class="next-lecture-details">
-                                <span><i class="fa-regular fa-clock"></i> 02:00 PM – 03:00 PM</span>
-                                <span><i class="fa-solid fa-chalkboard"></i> SY Computer A</span>
-                                <span><i class="fa-solid fa-location-dot"></i> Room 204</span>
+                                <span><i class="fa-regular fa-clock"></i> <span id="nextLectureTime">02:00 PM – 03:00 PM</span></span>
+                                <span><i class="fa-solid fa-chalkboard"></i> <span id="nextLectureClass">SY Computer A</span></span>
+                                <span><i class="fa-solid fa-location-dot"></i> <span id="nextLectureRoom">Room 204</span></span>
                             </div>
                             <div class="d-flex gap-2">
                                 <button class="btn-primary-custom flex-grow-1" onclick="simulateNav('Mark Attendance')">
@@ -563,10 +620,10 @@
                                 <div class="summary-metric-group">
                                     <div class="summary-metric-header">
                                         <span>Pending Verification</span>
-                                        <span class="summary-metric-value" style="color: var(--pending);">2 Classes</span>
+                                        <span class="summary-metric-value" id="summaryPendingCount" style="color: var(--pending);">2 Classes</span>
                                     </div>
                                     <div class="metric-progress-bar">
-                                        <div class="metric-progress-fill pending" style="width: 50%;"></div>
+                                        <div class="metric-progress-fill pending" id="summaryPendingBar" style="width: 50%;"></div>
                                     </div>
                                 </div>
                             </div>
@@ -930,6 +987,7 @@
         </div>
     </div>
 
+<<<<<<< HEAD
     <!-- Create Class Modal -->
     <div class="modal fade" id="createClassModal" tabindex="-1" aria-labelledby="createClassModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -1014,6 +1072,52 @@
                         <button type="submit" class="btn-primary-custom" style="padding: 0.4rem 1rem; font-size: 13px;">Add Student</button>
                     </div>
                 </form>
+=======
+    <!-- Edit Today's Classes Modal -->
+    <div class="modal fade" id="editScheduleModal" tabindex="-1" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title fw-semibold d-flex align-items-center" id="editScheduleModalLabel" style="font-size: 1rem; color: var(--text-primary);">
+                        <i class="fa-solid fa-calendar-days me-2" style="color: var(--primary);"></i> Edit Today's Classes
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary" style="font-size: 12px;">Modify today's timetable sessions, assign divisions, or adjust timings and rooms.</span>
+                        <span class="badge" id="modalSessionBadge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px;">4 Sessions</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table edit-schedule-table" id="editScheduleTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 125px;">Time</th>
+                                    <th>Subject</th>
+                                    <th style="width: 165px;">Class / Division</th>
+                                    <th style="width: 120px;">Room</th>
+                                    <th style="width: 135px;">Status</th>
+                                    <th style="width: 45px;" class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="editScheduleModalTbody">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-2 pt-1">
+                        <button type="button" class="btn-outline-custom" id="addScheduleRowBtn" onclick="addScheduleModalRow()">
+                            <i class="fa-solid fa-plus me-1"></i> Add Class
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Cancel</button>
+                    <button type="button" class="btn-primary-custom" onclick="saveScheduleChanges()" style="font-size: 0.8rem; padding: 0.45rem 1.1rem;">
+                        <i class="fa-solid fa-check me-1"></i> Save Changes
+                    </button>
+                </div>
+>>>>>>> 56302641bed2b614b93770370b233f334a44ba52
             </div>
         </div>
     </div>
