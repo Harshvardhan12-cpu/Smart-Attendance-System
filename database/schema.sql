@@ -1,6 +1,7 @@
 -- Smart Attendance ERP Database Schema
 -- Run this script to create all necessary tables
 
+DROP TABLE IF EXISTS login_logs;
 DROP TABLE IF EXISTS notification_templates;
 DROP TABLE IF EXISTS whatsapp_logs;
 DROP TABLE IF EXISTS attendance;
@@ -14,14 +15,25 @@ DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('admin', 'teacher', 'student') NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE,
+    email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(15),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE login_logs (
+    log_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    email VARCHAR(100) NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    status ENUM('success', 'failed') NOT NULL,
+    failure_reason VARCHAR(255) NULL,
+    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 CREATE TABLE classes (

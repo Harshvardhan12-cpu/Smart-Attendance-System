@@ -4,6 +4,19 @@ import bcrypt
 
 auth_bp = Blueprint('auth', __name__)
 
+def log_login_attempt(email, status, user_id=None, failure_reason=None):
+    try:
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1').split(',')[0].strip()
+        user_agent = request.user_agent.string if request.user_agent else 'Unknown'
+        execute_query(
+            """INSERT INTO login_logs (user_id, email, ip_address, user_agent, status, failure_reason)
+               VALUES (%s, %s, %s, %s, %s, %s)""",
+            (user_id, email, ip_address, user_agent, status, failure_reason),
+            commit=True
+        )
+    except Exception as e:
+        print(f"Error recording login audit log: {e}")
+
 @auth_bp.route('/register', methods=['POST'])
 @auth_bp.route('/signup', methods=['POST'])
 def register():
@@ -29,12 +42,10 @@ def register():
     else:
         db_role = 'teacher'
 
-    username = email.split('@')[0]
-
-    # Check if user already exists
+    # Check if user already exists by email
     existing = execute_query(
-        "SELECT user_id FROM users WHERE username = %s OR email = %s",
-        (username, email),
+        "SELECT user_id FROM users WHERE email = %s",
+        (email,),
         fetchone=True
     )
     if existing:
@@ -46,10 +57,10 @@ def register():
 
     # Insert user record
     insert_user_query = """
-        INSERT INTO users (username, password_hash, role, full_name, email, is_active)
-        VALUES (%s, %s, %s, %s, %s, 1)
+        INSERT INTO users (password_hash, role, full_name, email, is_active)
+        VALUES (%s, %s, %s, %s, 1)
     """
-    user_id = execute_query(insert_user_query, (username, password_hash, db_role, full_name, email), commit=True)
+    user_id = execute_query(insert_user_query, (password_hash, db_role, full_name, email), commit=True)
 
     teacher_id = None
     if db_role == 'teacher':
@@ -71,7 +82,6 @@ def register():
         'message': 'Registration successful',
         'user': {
             'user_id': user_id,
-            'username': username,
             'role': db_role,
             'full_name': full_name,
             'email': email,
@@ -82,18 +92,23 @@ def register():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.json or {}
-    username = (data.get('username') or data.get('email') or '').strip()
+    email = (data.get('email') or data.get('username') or '').strip().lower()
     password = (data.get('password') or '').strip()
 
-    if not username or not password:
-        return jsonify({'error': 'Email/username and password are required'}), 400
+    if not email or not password:
+        log_login_attempt(email or 'unknown', 'failed', failure_reason='Missing email or password')
+        return jsonify({'error': 'Email and password are required'}), 400
 
     user = execute_query(
-        "SELECT * FROM users WHERE (username = %s OR email = %s) AND is_active = 1", 
-        (username, username), fetchone=True
+        "SELECT * FROM users WHERE email = %s AND is_active = 1", 
+        (email,), fetchone=True
     )
 
-    if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+    if not user:
+        log_login_attempt(email, 'failed', failure_reason='Account not found or inactive')
+        return jsonify({'error': 'Invalid email or password'}), 401
+
+    if bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
         session['user_id'] = user['user_id']
         session['role'] = user['role']
         session['full_name'] = user['full_name']
@@ -112,17 +127,22 @@ def login():
                 )
             session['teacher_id'] = teacher_id
 
+        # Log successful authentication attempt
+        log_login_attempt(email, 'success', user_id=user['user_id'])
+
         return jsonify({
             'message': 'Login successful',
             'user': {
                 'user_id': user['user_id'],
-                'username': user['username'],
                 'role': user['role'],
                 'full_name': user['full_name'],
+                'email': user['email'],
                 'teacher_id': teacher_id
             }
         }), 200
     
+    # Password mismatch
+    log_login_attempt(email, 'failed', user_id=user['user_id'], failure_reason='Invalid password')
     return jsonify({'error': 'Invalid email or password'}), 401
 
 @auth_bp.route('/logout', methods=['POST'])
@@ -142,3 +162,20 @@ def current_user():
         'teacher_id': session.get('teacher_id')
     }), 200
 
+@auth_bp.route('/login-logs', methods=['GET'])
+def get_login_logs():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    logs = execute_query("""
+        SELECT l.*, u.full_name 
+        FROM login_logs l 
+        LEFT JOIN users u ON l.user_id = u.user_id 
+        ORDER BY l.logged_at DESC LIMIT 100
+    """, fetchall=True) or []
+    
+    for log in logs:
+        if log.get('logged_at'):
+            log['logged_at'] = str(log['logged_at'])
+            
+    return jsonify(logs), 200

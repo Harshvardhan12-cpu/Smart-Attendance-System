@@ -10,3 +10,8 @@ class Config:
     DB_NAME = os.getenv('DB_NAME', 'smart_attendance')
     DB_USER = os.getenv('DB_USER', 'root')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+    
+    # Session Security Config
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    PERMANENT_SESSION_LIFETIME = 86400

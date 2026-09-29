@@ -102,14 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-<<<<<<< HEAD
-    // Load initial dashboard stats
+    // Load initial dashboard stats & schedule
     loadDashboardStats();
-});
 
-// --- SPA Navigation Controller ---
-=======
-    // --- History Filter Event Listeners ---
+    // History Filter Event Listeners
     const historyDateInput = document.getElementById('historyDateInput');
     const historyLectureSelect = document.getElementById('historyLectureSelect');
     const historyStatusSelect = document.getElementById('historyStatusSelect');
@@ -117,9 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (historyDateInput) historyDateInput.addEventListener('change', filterAttendanceHistory);
     if (historyLectureSelect) historyLectureSelect.addEventListener('change', filterAttendanceHistory);
     if (historyStatusSelect) historyStatusSelect.addEventListener('change', filterAttendanceHistory);
-
-    // Initialize Today's Schedule on load
-    initTodaySchedule();
 });
 
 // --- Today's Schedule Management & Persistence ---
@@ -643,8 +636,6 @@ const mockStudentsByClass = {
     ]
 };
 
-const todayStr = new Date().toISOString().split('T')[0];
-
 function generateInitialAttendanceHistory() {
     const saved = localStorage.getItem('smart_attendance_history');
     if (saved) {
@@ -693,7 +684,6 @@ function generateInitialAttendanceHistory() {
 let attendanceHistoryStore = generateInitialAttendanceHistory();
 
 // --- Navigation Item Click & Header Update Simulation ---
->>>>>>> 56302641bed2b614b93770370b233f334a44ba52
 function simulateNav(moduleName) {
     const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
     menuItems.forEach(item => {
@@ -737,14 +727,7 @@ function simulateNav(moduleName) {
     if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
 }
 
-<<<<<<< HEAD
 // --- Dynamic Data Fetching Functions ---
-=======
-// --- Data Loaders ---
-function loadDashboardStats() {
-    initTodaySchedule();
-}
->>>>>>> 56302641bed2b614b93770370b233f334a44ba52
 
 async function loadDashboardStats() {
     try {

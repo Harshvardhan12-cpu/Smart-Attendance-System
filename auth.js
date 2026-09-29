@@ -55,7 +55,6 @@
                 },
                 body: JSON.stringify({
                     email: cleanEmail,
-                    username: cleanEmail,
                     password: cleanPass
                 })
             });
@@ -236,6 +235,8 @@
                         const firstName = serverUser.full_name.split(' ')[0] || serverUser.full_name;
                         greetingEl.textContent = `Good morning, ${serverUser.role === 'teacher' ? 'Prof. ' + firstName : serverUser.full_name}`;
                     }
+                } else if (res.status === 401) {
+                    this.logout();
                 }
             } catch (e) {
                 console.error("Profile sync error:", e);

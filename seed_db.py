@@ -42,9 +42,23 @@ def seed_database():
         # Insert Admin
         admin_pass = hash_password('admin123')
         cursor.execute("""
-            INSERT INTO users (username, password_hash, role, full_name, email, is_active)
-            VALUES ('admin', %s, 'admin', 'System Administrator', 'admin@college.edu', 1)
+            INSERT INTO users (password_hash, role, full_name, email, is_active)
+            VALUES (%s, 'admin', 'System Administrator', 'admin@college.edu', 1)
         """, (admin_pass,))
+
+        # Insert User Requested Credentials Account (Harshvardhan Pate)
+        hp_pass = hash_password('HP123*#')
+        cursor.execute("""
+            INSERT INTO users (password_hash, role, full_name, email, is_active)
+            VALUES (%s, 'teacher', 'Harshvardhan Pate', 'harshvardhanpate9@gmail.com', 1)
+        """, (hp_pass,))
+        hp_user_id = cursor.lastrowid
+        
+        cursor.execute("""
+            INSERT INTO teachers (user_id, employee_id, full_name, email)
+            VALUES (%s, 'EMP000', 'Harshvardhan Pate', 'harshvardhanpate9@gmail.com')
+        """, (hp_user_id,))
+        hp_teacher_id = cursor.lastrowid
 
         # Insert Teachers
         teacher_pass = hash_password('teacher123')
@@ -53,19 +67,19 @@ def seed_database():
             ('pjoshi', 'Prof. Priya Joshi', 'priya.joshi@college.edu', 'EMP002'),
             ('rsharma', 'Prof. Rajesh Sharma', 'rajesh.sharma@college.edu', 'EMP003')
         ]
-        teacher_ids = {}
-        for username, name, email, emp_id in teachers:
+        teacher_ids = {'hpate': hp_teacher_id}
+        for key, name, email, emp_id in teachers:
             cursor.execute("""
-                INSERT INTO users (username, password_hash, role, full_name, email, is_active)
-                VALUES (%s, %s, 'teacher', %s, %s, 1)
-            """, (username, teacher_pass, name, email))
+                INSERT INTO users (password_hash, role, full_name, email, is_active)
+                VALUES (%s, 'teacher', %s, %s, 1)
+            """, (teacher_pass, name, email))
             user_id = cursor.lastrowid
             
             cursor.execute("""
                 INSERT INTO teachers (user_id, employee_id, full_name, email)
                 VALUES (%s, %s, %s, %s)
             """, (user_id, emp_id, name, email))
-            teacher_ids[username] = cursor.lastrowid
+            teacher_ids[key] = cursor.lastrowid
 
         # Insert Classes
         classes = [
@@ -100,12 +114,13 @@ def seed_database():
             """, (code, name, sem, credits))
             subject_ids[name] = cursor.lastrowid
 
-        # Insert Teacher-Subject Mappings
+        # Insert Teacher-Subject Mappings (Include Harshvardhan Pate's teacher_id)
         teacher_subject_mappings = [
+            (teacher_ids['hpate'], subject_ids['Data Structures'], class_ids['SY Computer A']),
+            (teacher_ids['hpate'], subject_ids['Software Engineering'], class_ids['SY Computer A']),
+            (teacher_ids['hpate'], subject_ids['Database Management System'], class_ids['TY Computer A']),
             (teacher_ids['jsmith'], subject_ids['Data Structures'], class_ids['SY Computer A']),
-            (teacher_ids['jsmith'], subject_ids['Software Engineering'], class_ids['SY Computer A']),
             (teacher_ids['pjoshi'], subject_ids['Operating Systems'], class_ids['TY Computer A']),
-            (teacher_ids['rsharma'], subject_ids['Database Management System'], class_ids['TY Computer A']),
             (teacher_ids['rsharma'], subject_ids['Machine Learning'], class_ids['Final Year CS'])
         ]
         ts_ids = []
@@ -118,13 +133,14 @@ def seed_database():
 
         # Insert Timetables
         timetables = [
-            (ts_ids[0], 'Monday', '09:00:00', '10:00:00', 'Lab 5'), # J.Smith, DS, SY Comp A
+            (ts_ids[0], 'Monday', '09:00:00', '10:00:00', 'Lab 5'), # H.Pate, DS, SY Comp A
             (ts_ids[0], 'Wednesday', '10:00:00', '11:00:00', 'Lab 5'),
-            (ts_ids[1], 'Monday', '14:00:00', '15:00:00', 'Room 204'), # J.Smith, SE, SY Comp A
+            (ts_ids[1], 'Monday', '14:00:00', '15:00:00', 'Room 204'), # H.Pate, SE, SY Comp A
             (ts_ids[1], 'Thursday', '11:15:00', '12:15:00', 'Room 204'),
-            (ts_ids[2], 'Tuesday', '11:15:00', '12:15:00', 'Room 302'), # P.Joshi, OS, TY Comp A
-            (ts_ids[3], 'Friday', '09:00:00', '10:00:00', 'Room 303'), # R.Sharma, DBMS, TY Comp A
-            (ts_ids[4], 'Monday', '15:45:00', '16:45:00', 'Lab 2'), # R.Sharma, ML, Final Year CS
+            (ts_ids[2], 'Friday', '09:00:00', '10:00:00', 'Room 303'), # H.Pate, DBMS, TY Comp A
+            (ts_ids[3], 'Tuesday', '11:15:00', '12:15:00', 'Room 302'), # J.Smith, DS, SY Comp A
+            (ts_ids[4], 'Tuesday', '14:00:00', '15:00:00', 'Room 302'), # P.Joshi, OS, TY Comp A
+            (ts_ids[5], 'Monday', '15:45:00', '16:45:00', 'Lab 2'), # R.Sharma, ML, Final Year CS
         ]
         timetable_ids = []
         for ts_id, day, start, end, room in timetables:
@@ -150,9 +166,9 @@ def seed_database():
         for roll, enroll, name, email, parent, p_phone in sy_a_students:
             # Create user
             cursor.execute("""
-                INSERT INTO users (username, password_hash, role, full_name, email, is_active)
-                VALUES (%s, %s, 'student', %s, %s, 1)
-            """, (enroll, student_pass, name, email))
+                INSERT INTO users (password_hash, role, full_name, email, is_active)
+                VALUES (%s, 'student', %s, %s, 1)
+            """, (student_pass, name, email))
             u_id = cursor.lastrowid
             
             cursor.execute("""
@@ -168,9 +184,9 @@ def seed_database():
         ]
         for roll, enroll, name, email, parent, p_phone in ty_a_students:
             cursor.execute("""
-                INSERT INTO users (username, password_hash, role, full_name, email, is_active)
-                VALUES (%s, %s, 'student', %s, %s, 1)
-            """, (enroll, student_pass, name, email))
+                INSERT INTO users (password_hash, role, full_name, email, is_active)
+                VALUES (%s, 'student', %s, %s, 1)
+            """, (student_pass, name, email))
             u_id = cursor.lastrowid
             cursor.execute("""
                 INSERT INTO students (user_id, class_id, roll_number, enrollment_number, full_name, email, parent_name, parent_phone, admission_year)
