@@ -301,55 +301,8 @@
                                             <th class="text-end">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td class="fw-semibold">09:00 AM</td>
-                                            <td class="fw-medium">Data Structures</td>
-                                            <td>SY Computer A</td>
-                                            <td>Lab 5</td>
-                                            <td><span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span></td>
-                                            <td class="text-end">
-                                                <button class="btn-outline-custom" onclick="triggerAction('View Attendance - Data Structures')">
-                                                    <i class="fa-regular fa-eye"></i> View
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td class="fw-semibold">11:15 AM</td>
-                                            <td class="fw-medium">Operating Systems</td>
-                                            <td>TY IT B</td>
-                                            <td>Room 302</td>
-                                            <td><span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span></td>
-                                            <td class="text-end">
-                                                <button class="btn-outline-custom" onclick="triggerAction('View Attendance - Operating Systems')">
-                                                    <i class="fa-regular fa-eye"></i> View
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td class="fw-semibold">02:00 PM</td>
-                                            <td class="fw-medium">Software Engineering</td>
-                                            <td>SY Computer A</td>
-                                            <td>Room 204</td>
-                                            <td><span class="status-badge status-inprogress"><i class="fa-solid fa-rotate"></i> Pending</span></td>
-                                            <td class="text-end">
-                                                <button class="btn-primary-custom" onclick="simulateNav('Mark Attendance')">
-                                                    <i class="fa-solid fa-clipboard-user"></i> Mark
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td class="fw-semibold">03:45 PM</td>
-                                            <td class="fw-medium">Machine Learning</td>
-                                            <td>Final Year CS</td>
-                                            <td>Lab 2</td>
-                                            <td><span class="status-badge status-upcoming"><i class="fa-regular fa-clock"></i> Upcoming</span></td>
-                                            <td class="text-end">
-                                                <button class="btn-outline-custom" onclick="triggerAction('Class Details - Machine Learning')">
-                                                    <i class="fa-solid fa-arrow-right"></i> Details
-                                                </button>
-                                            </td>
-                                        </tr>
+                                    <tbody id="todaysScheduleTableBody">
+                                        <!-- Populated dynamically by JS -->
                                     </tbody>
                                 </table>
                             </div>
@@ -496,42 +449,8 @@
                                                     <th class="text-end">Action</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td class="fw-semibold">101</td>
-                                                    <td class="fw-medium">Rahul Sharma</td>
-                                                    <td>SY Computer A</td>
-                                                    <td><span class="status-badge status-present">Present</span></td>
-                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Rahul Sharma', '101')">Details</button></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-semibold">102</td>
-                                                    <td class="fw-medium">Amit Patil</td>
-                                                    <td>SY Computer A</td>
-                                                    <td><span class="status-badge status-absent">Absent</span></td>
-                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Amit Patil', '102')">Details</button></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-semibold">103</td>
-                                                    <td class="fw-medium">Sneha Kulkarni</td>
-                                                    <td>SY Computer A</td>
-                                                    <td><span class="status-badge status-late">Late</span></td>
-                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Sneha Kulkarni', '103')">Details</button></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-semibold">104</td>
-                                                    <td class="fw-medium">Vikram Singh</td>
-                                                    <td>SY Computer A</td>
-                                                    <td><span class="status-badge status-present">Present</span></td>
-                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Vikram Singh', '104')">Details</button></td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="fw-semibold">105</td>
-                                                    <td class="fw-medium">Priya Joshi</td>
-                                                    <td>SY Computer A</td>
-                                                    <td><span class="status-badge status-leave">Leave</span></td>
-                                                    <td class="text-end"><button class="btn-outline-custom" onclick="viewStudentDetails('Priya Joshi', '105')">Details</button></td>
-                                                </tr>
+                                            <tbody id="recentAttendanceTableBody">
+                                                <!-- Populated dynamically by JS -->
                                             </tbody>
                                         </table>
                                     </div>
@@ -751,9 +670,16 @@
             <!-- --- Other SPA Sections --- -->
             <div id="section-MyClasses" class="spa-section">
                 <div class="dashboard-card">
-                    <div class="card-title">
+                    <div class="card-title d-flex justify-content-between align-items-center">
                         <span><i class="fa-solid fa-chalkboard-user me-2"></i>My Classes</span>
-                        <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px;">Assigned Subjects</span>
+                        <div class="d-flex gap-2">
+                            <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#createClassModal" style="font-size: 12px; padding: 0.35rem 0.75rem;">
+                                <i class="fa-solid fa-plus me-1"></i> Create Class
+                            </button>
+                            <button class="btn-outline-custom" data-bs-toggle="modal" data-bs-target="#addStudentModal" style="font-size: 12px; padding: 0.35rem 0.75rem;">
+                                <i class="fa-solid fa-user-plus me-1"></i> Add Student
+                            </button>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="custom-table" id="myClassesTable">
@@ -1000,6 +926,94 @@
                         <i class="fa-brands fa-whatsapp me-1"></i> Contact Parent
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Class Modal -->
+    <div class="modal fade" id="createClassModal" tabindex="-1" aria-labelledby="createClassModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold" id="createClassModalLabel" style="font-size: 1rem;">Create New Class Workspace</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="createClassForm" onsubmit="submitCreateClass(event)">
+                    <div class="modal-body p-3">
+                        <div class="mb-3">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Class / Batch Name *</label>
+                            <input type="text" class="form-control form-control-sm" id="createClassName" placeholder="e.g. SY Computer A" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Subject Name *</label>
+                            <input type="text" class="form-control form-control-sm" id="createSubjectName" placeholder="e.g. Data Structures" required>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Subject Code</label>
+                                <input type="text" class="form-control form-control-sm" id="createSubjectCode" placeholder="e.g. CS201">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Semester</label>
+                                <input type="number" class="form-control form-control-sm" id="createSemester" value="3" min="1" max="8">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-custom" style="padding: 0.4rem 1rem; font-size: 13px;">Create Class</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Student Modal -->
+    <div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold" id="addStudentModalLabel" style="font-size: 1rem;">Add Student to Class</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="addStudentForm" onsubmit="submitAddStudent(event)">
+                    <div class="modal-body p-3">
+                        <div class="mb-3">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Select Target Class *</label>
+                            <select class="form-select form-select-sm" id="addStudentClassSelect" required>
+                                <option value="">Select a class...</option>
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Roll No *</label>
+                                <input type="text" class="form-control form-control-sm" id="addStudentRoll" placeholder="101" required>
+                            </div>
+                            <div class="col-8">
+                                <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Student Full Name *</label>
+                                <input type="text" class="form-control form-control-sm" id="addStudentName" placeholder="e.g. Rahul Sharma" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Student Email</label>
+                            <input type="email" class="form-control form-control-sm" id="addStudentEmail" placeholder="student@college.edu">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Parent Name</label>
+                                <input type="text" class="form-control form-control-sm" id="addStudentParentName" placeholder="e.g. Ramesh Sharma">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Parent Contact Phone</label>
+                                <input type="tel" class="form-control form-control-sm" id="addStudentParentPhone" placeholder="+91 98765 43210">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-custom" style="padding: 0.4rem 1rem; font-size: 13px;">Add Student</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

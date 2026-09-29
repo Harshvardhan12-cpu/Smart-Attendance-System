@@ -1,10 +1,12 @@
 /**
  * Smart Attendance ERP - Teacher Dashboard Javascript
- * Handles theme toggling, live date-time, responsive sidebar, search filters, and modal simulations.
+ * Handles live theme toggling, real-time date/clock, navigation, dynamic Flask API data binding, and modals.
  */
 
+const todayStr = new Date().toISOString().split('T')[0];
+
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Profile & Authentication State Sync ---
+    // Sync profile and session details from server
     if (window.AuthService) {
         window.AuthService.syncProfileUI();
     }
@@ -13,29 +15,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggleBtn = document.getElementById('themeToggle');
     const htmlElement = document.documentElement;
 
-    // Load theme setting
     const currentTheme = localStorage.getItem('theme') || 'light';
     htmlElement.setAttribute('data-bs-theme', currentTheme);
     updateThemeIcon(currentTheme);
 
-    themeToggleBtn.addEventListener('click', () => {
-        const activeTheme = htmlElement.getAttribute('data-bs-theme');
-        const newTheme = activeTheme === 'light' ? 'dark' : 'light';
-        
-        htmlElement.setAttribute('data-bs-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        updateThemeIcon(newTheme);
-        showToast(`Theme changed to ${newTheme} mode!`, 'info');
-    });
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const activeTheme = htmlElement.getAttribute('data-bs-theme');
+            const newTheme = activeTheme === 'light' ? 'dark' : 'light';
+            
+            htmlElement.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+            showToast(`Theme changed to ${newTheme} mode!`, 'info');
+        });
+    }
 
     function updateThemeIcon(theme) {
+        if (!themeToggleBtn) return;
         const icon = themeToggleBtn.querySelector('i');
-        if (theme === 'dark') {
-            icon.className = 'fa-solid fa-sun';
-            themeToggleBtn.setAttribute('title', 'Switch to Light Mode');
-        } else {
-            icon.className = 'fa-solid fa-moon';
-            themeToggleBtn.setAttribute('title', 'Switch to Dark Mode');
+        if (icon) {
+            icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
         }
     }
 
@@ -45,176 +45,73 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
     function toggleSidebar() {
-        sidebarMenu.classList.toggle('active');
-        sidebarBackdrop.classList.toggle('active');
+        if (sidebarMenu) sidebarMenu.classList.toggle('active');
+        if (sidebarBackdrop) sidebarBackdrop.classList.toggle('active');
     }
 
     function closeSidebar() {
-        sidebarMenu.classList.remove('active');
-        sidebarBackdrop.classList.remove('active');
+        if (sidebarMenu) sidebarMenu.classList.remove('active');
+        if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
     }
 
-    menuToggleBtn.addEventListener('click', toggleSidebar);
-    sidebarBackdrop.addEventListener('click', closeSidebar);
+    if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleSidebar);
+    if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', closeSidebar);
 
-    // --- Digital Clock & Real-time Calendar Update ---
+    // --- Live Clock & Date ---
     const liveClock = document.getElementById('liveClock');
     const liveDate = document.getElementById('liveDate');
 
     function updateTime() {
         const now = new Date();
-        
-        // Time formatting
         let hours = now.getHours();
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
         const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12; // conversion of 0 to 12
-        const formattedTime = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
-        liveClock.textContent = formattedTime;
+        hours = hours % 12 || 12;
+        if (liveClock) liveClock.textContent = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
 
-        // Date formatting
-        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-        // Insert ordinal suffix (st, nd, rd, th)
         let day = now.getDate();
         let suffix = 'th';
         if (day === 1 || day === 21 || day === 31) suffix = 'st';
         else if (day === 2 || day === 22) suffix = 'nd';
         else if (day === 3 || day === 23) suffix = 'rd';
-        
+
         const formatter = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', year: 'numeric' });
         const parts = formatter.formatToParts(now);
         const weekday = parts.find(p => p.type === 'weekday').value;
         const month = parts.find(p => p.type === 'month').value;
         const year = parts.find(p => p.type === 'year').value;
-        
-        liveDate.textContent = `${weekday}, ${day}${suffix} ${month} ${year}`;
+
+        if (liveDate) liveDate.textContent = `${weekday}, ${day}${suffix} ${month} ${year}`;
     }
 
     updateTime();
     setInterval(updateTime, 1000);
 
-    // --- Search Filter Simulation ---
+    // --- Live Table Search Filter ---
     const searchBar = document.getElementById('searchBar');
-    const recentAttendanceTable = document.getElementById('recentAttendanceTable');
+    if (searchBar) {
+        searchBar.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('#recentAttendanceTableBody tr, #attendanceHistoryTableData tbody tr');
 
-    searchBar.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        const rows = recentAttendanceTable.querySelectorAll('tbody tr');
-
-        rows.forEach(row => {
-            const studentName = row.cells[1].textContent.toLowerCase();
-            const rollNo = row.cells[0].textContent.toLowerCase();
-            const className = row.cells[2].textContent.toLowerCase();
-
-            if (studentName.includes(query) || rollNo.includes(query) || className.includes(query)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
         });
-    });
+    }
 
-    // --- History Filter Event Listeners ---
-    const historyDateInput = document.getElementById('historyDateInput');
-    const historyLectureSelect = document.getElementById('historyLectureSelect');
-    const historyStatusSelect = document.getElementById('historyStatusSelect');
-
-    if (historyDateInput) historyDateInput.addEventListener('change', filterAttendanceHistory);
-    if (historyLectureSelect) historyLectureSelect.addEventListener('change', filterAttendanceHistory);
-    if (historyStatusSelect) historyStatusSelect.addEventListener('change', filterAttendanceHistory);
+    // Load initial dashboard stats
+    loadDashboardStats();
 });
 
-// --- Client-side Datasets (No Database Required) ---
-const mockLectures = [
-    { id: "DS", timetable_id: 1, class_id: 101, code: "DS", name: "Data Structures", className: "SY Computer A", time: "09:00 AM" },
-    { id: "OS", timetable_id: 2, class_id: 102, code: "OS", name: "Operating Systems", className: "TY IT B", time: "11:15 AM" },
-    { id: "SE", timetable_id: 3, class_id: 101, code: "SE", name: "Software Engineering", className: "SY Computer A", time: "02:00 PM" },
-    { id: "ML", timetable_id: 4, class_id: 103, code: "ML", name: "Machine Learning", className: "Final Year CS", time: "03:45 PM" }
-];
-
-const mockStudentsByClass = {
-    101: [ // SY Computer A
-        { student_id: 101, roll_number: "101", full_name: "Rahul Sharma" },
-        { student_id: 102, roll_number: "102", full_name: "Amit Patil" },
-        { student_id: 103, roll_number: "103", full_name: "Sneha Kulkarni" },
-        { student_id: 104, roll_number: "104", full_name: "Vikram Singh" },
-        { student_id: 105, roll_number: "105", full_name: "Priya Joshi" },
-        { student_id: 106, roll_number: "106", full_name: "Rohan Mehta" },
-        { student_id: 107, roll_number: "107", full_name: "Neha Shinde" }
-    ],
-    102: [ // TY IT B
-        { student_id: 201, roll_number: "201", full_name: "Aarav Gupta" },
-        { student_id: 202, roll_number: "202", full_name: "Ananya Deshmukh" },
-        { student_id: 203, roll_number: "203", full_name: "Siddharth Rao" },
-        { student_id: 204, roll_number: "204", full_name: "Tanvi Kadam" },
-        { student_id: 205, roll_number: "205", full_name: "Yash Pawar" }
-    ],
-    103: [ // Final Year CS
-        { student_id: 301, roll_number: "301", full_name: "Aditya Joshi" },
-        { student_id: 302, roll_number: "302", full_name: "Pooja Nair" },
-        { student_id: 303, roll_number: "303", full_name: "Ishaan Verma" },
-        { student_id: 304, roll_number: "304", full_name: "Diya Shah" },
-        { student_id: 305, roll_number: "305", full_name: "Sameer Khan" }
-    ]
-};
-
-const todayStr = new Date().toISOString().split('T')[0];
-
-function generateInitialAttendanceHistory() {
-    const saved = localStorage.getItem('smart_attendance_history');
-    if (saved) {
-        try { return JSON.parse(saved); } catch(e) {}
-    }
-    
-    // Rich default mock dataset matching standard academic schedule
-    const records = [
-        // Today - Data Structures
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Rahul Sharma", roll_number: "101", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Amit Patil", roll_number: "102", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Sneha Kulkarni", roll_number: "103", status: "absent" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Vikram Singh", roll_number: "104", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Priya Joshi", roll_number: "105", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Rohan Mehta", roll_number: "106", status: "absent" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Neha Shinde", roll_number: "107", status: "present" },
-
-        // Today - Software Engineering
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Rahul Sharma", roll_number: "101", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Amit Patil", roll_number: "102", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Sneha Kulkarni", roll_number: "103", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Vikram Singh", roll_number: "104", status: "absent" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Priya Joshi", roll_number: "105", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Rohan Mehta", roll_number: "106", status: "late" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Neha Shinde", roll_number: "107", status: "present" },
-
-        // Today - Operating Systems
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Aarav Gupta", roll_number: "201", status: "present" },
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Ananya Deshmukh", roll_number: "202", status: "present" },
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Siddharth Rao", roll_number: "203", status: "absent" },
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Tanvi Kadam", roll_number: "204", status: "present" },
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Yash Pawar", roll_number: "205", status: "present" },
-
-        // Today - Machine Learning
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Aditya Joshi", roll_number: "301", status: "present" },
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Pooja Nair", roll_number: "302", status: "present" },
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Ishaan Verma", roll_number: "303", status: "late" },
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Diya Shah", roll_number: "304", status: "present" },
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Sameer Khan", roll_number: "305", status: "absent" }
-    ];
-
-    localStorage.setItem('smart_attendance_history', JSON.stringify(records));
-    return records;
-}
-
-let attendanceHistoryStore = generateInitialAttendanceHistory();
-
-// --- Navigation Item Click & Header Update Simulation ---
+// --- SPA Navigation Controller ---
 function simulateNav(moduleName) {
     const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
     menuItems.forEach(item => {
         const link = item.querySelector('.menu-item-link');
-        if (link.textContent.trim().includes(moduleName)) {
+        if (link && link.textContent.trim().includes(moduleName)) {
             item.classList.add('active');
         } else {
             item.classList.remove('active');
@@ -235,7 +132,7 @@ function simulateNav(moduleName) {
     if (targetSection) {
         targetSection.style.display = 'block';
         setTimeout(() => targetSection.classList.add('active'), 50);
-        
+
         if (moduleName === 'Dashboard') {
             loadDashboardStats();
         } else if (moduleName === 'My Classes') {
@@ -245,8 +142,6 @@ function simulateNav(moduleName) {
         } else if (moduleName === 'Attendance History') {
             loadAttendanceHistory();
         }
-    } else {
-        showToast(`Section ${moduleName} not found.`, 'error');
     }
 
     const sidebarMenu = document.getElementById('sidebarMenu');
@@ -255,83 +150,275 @@ function simulateNav(moduleName) {
     if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
 }
 
-// --- Data Loaders ---
-function loadDashboardStats() {
-    // Stats remain populated by HTML template
-}
+// --- Dynamic Data Fetching Functions ---
 
-function loadMyClasses() {
-    const tbody = document.querySelector('#myClassesTable tbody');
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr>
-                <td class="fw-medium">SY Computer A</td>
-                <td>Data Structures</td>
-                <td>Sem 3</td>
-                <td>7 Students</td>
-            </tr>
-            <tr>
-                <td class="fw-medium">SY Computer A</td>
-                <td>Software Engineering</td>
-                <td>Sem 3</td>
-                <td>7 Students</td>
-            </tr>
-            <tr>
-                <td class="fw-medium">TY IT B</td>
-                <td>Operating Systems</td>
-                <td>Sem 5</td>
-                <td>5 Students</td>
-            </tr>
-            <tr>
-                <td class="fw-medium">Final Year CS</td>
-                <td>Machine Learning</td>
-                <td>Sem 7</td>
-                <td>5 Students</td>
-            </tr>
-        `;
+async function loadDashboardStats() {
+    try {
+        const res = await fetch('/api/reports/dashboard-stats');
+        if (!res.ok) return;
+        const stats = await res.json();
+
+        // Update card stats numbers
+        const statCards = document.querySelectorAll('.stat-card');
+        if (statCards.length >= 6) {
+            statCards[0].querySelector('.stat-number').textContent = `${stats.todays_classes} Lectures`;
+            statCards[1].querySelector('.stat-number').textContent = `${stats.students_assigned} Students`;
+            statCards[2].querySelector('.stat-number').textContent = `${stats.attendance_submitted} / ${stats.todays_classes} Classes`;
+            statCards[3].querySelector('.stat-number').textContent = `${stats.students_present} Present`;
+            statCards[4].querySelector('.stat-number').textContent = `${stats.students_absent} Absent`;
+            statCards[5].querySelector('.stat-number').textContent = `${stats.pending_attendance} Classes`;
+        }
+
+        // Fetch today's timetable and update schedule table
+        loadTodaySchedule();
+        loadRecentAttendance();
+    } catch (e) {
+        console.error("Dashboard stats error:", e);
     }
 }
 
-function loadAttendanceForm() {
+async function loadTodaySchedule() {
+    const tbody = document.getElementById('todaysScheduleTableBody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/timetable/today');
+        if (!res.ok) return;
+        const timetable = await res.json();
+
+        tbody.innerHTML = '';
+        if (!timetable || timetable.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-calendar-xmark d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                        No classes scheduled for today.
+                    </td>
+                </tr>
+            `;
+            updateNextLectureWidget(null);
+            return;
+        }
+
+        timetable.forEach(t => {
+            let badgeClass = 'status-upcoming';
+            if (t.status === 'Completed') badgeClass = 'status-present';
+            else if (t.status === 'In Progress') badgeClass = 'status-inprogress';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-semibold">${t.start_time_str || t.start_time}</td>
+                    <td class="fw-medium">${t.subject_name}</td>
+                    <td>${t.class_name}</td>
+                    <td>${t.room_number || 'Room 101'}</td>
+                    <td><span class="status-badge ${badgeClass}">${t.status}</span></td>
+                    <td class="text-end">
+                        <button class="btn-primary-custom" onclick="simulateNav('Mark Attendance')">
+                            <i class="fa-solid fa-clipboard-user"></i> Mark
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        // Set Next Lecture widget
+        const upcoming = timetable.find(t => t.status === 'Scheduled' || t.status === 'In Progress') || timetable[0];
+        updateNextLectureWidget(upcoming);
+
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-3 text-muted">Error loading schedule.</td></tr>`;
+    }
+}
+
+function updateNextLectureWidget(lecture) {
+    const card = document.querySelector('.next-lecture-card');
+    if (!card) return;
+
+    if (!lecture) {
+        card.querySelector('.next-lecture-subject').textContent = 'No Lectures Today';
+        card.querySelector('.next-lecture-details').innerHTML = `<span><i class="fa-regular fa-clock"></i> All sessions clear</span>`;
+        return;
+    }
+
+    card.querySelector('.next-lecture-subject').textContent = lecture.subject_name;
+    card.querySelector('.next-lecture-details').innerHTML = `
+        <span><i class="fa-regular fa-clock"></i> ${lecture.start_time_str || lecture.start_time} – ${lecture.end_time_str || lecture.end_time}</span>
+        <span><i class="fa-solid fa-chalkboard"></i> ${lecture.class_name}</span>
+        <span><i class="fa-solid fa-location-dot"></i> ${lecture.room_number || 'Room 101'}</span>
+    `;
+}
+
+async function loadRecentAttendance() {
+    const tbody = document.getElementById('recentAttendanceTableBody');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/attendance');
+        if (!res.ok) return;
+        const records = await res.json();
+
+        tbody.innerHTML = '';
+        if (!records || records.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-folder-open d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                        No recent attendance records found.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        records.slice(0, 5).forEach(r => {
+            let badgeClass = r.status === 'present' ? 'status-present' : r.status === 'absent' ? 'status-absent' : 'status-late';
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-semibold">${r.roll_number}</td>
+                    <td class="fw-medium">${r.student_name}</td>
+                    <td>${r.class_name}</td>
+                    <td><span class="status-badge ${badgeClass}">${r.status}</span></td>
+                    <td class="text-end">
+                        <button class="btn-outline-custom" onclick="viewStudentDetails('${r.student_name}', '${r.roll_number}')">Details</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-muted">Error loading records.</td></tr>`;
+    }
+}
+
+async function loadMyClasses() {
+    const tbody = document.querySelector('#myClassesTable tbody');
+    const classSelect = document.getElementById('addStudentClassSelect');
+    if (!tbody) return;
+
+    try {
+        const res = await fetch('/api/classes');
+        if (!res.ok) return;
+        const classes = await res.json();
+
+        tbody.innerHTML = '';
+        if (classSelect) classSelect.innerHTML = '<option value="">Select a class...</option>';
+
+        if (!classes || classes.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-folder-open d-block mb-2" style="font-size: 1.8rem; opacity: 0.5;"></i>
+                        No classes found for your account.<br>
+                        <button class="btn-primary-custom mt-2" data-bs-toggle="modal" data-bs-target="#createClassModal" style="font-size: 12px;">
+                            <i class="fa-solid fa-plus me-1"></i> Create Your First Class
+                        </button>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        classes.forEach(c => {
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-medium">${c.section_name}</td>
+                    <td>${c.subject_name} <span class="text-muted" style="font-size: 11px;">(${c.subject_code})</span></td>
+                    <td>Sem ${c.semester || 1}</td>
+                    <td>${c.student_count || 0} Students</td>
+                </tr>
+            `;
+
+            if (classSelect) {
+                classSelect.innerHTML += `<option value="${c.class_id}">${c.section_name} - ${c.subject_name}</option>`;
+            }
+        });
+
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-muted">Error loading classes.</td></tr>`;
+    }
+}
+
+async function loadAttendanceForm() {
     const dateInput = document.getElementById('markAttDate');
     if (dateInput && !dateInput.value) {
         dateInput.value = todayStr;
     }
-    
+
     const select = document.getElementById('markAttLecture');
-    if (select) {
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Loading lectures...</option>';
+
+    try {
+        const res = await fetch('/api/timetable/today');
+        if (!res.ok) return;
+        const timetables = await res.json();
+
+        window.todayTimetable = timetables || [];
+
         select.innerHTML = '<option value="">Select a lecture...</option>';
-        mockLectures.forEach(l => {
-            select.innerHTML += `<option value="${l.id}" data-classid="${l.class_id}">${l.time} - ${l.name} (${l.className})</option>`;
+        if (!timetables || timetables.length === 0) {
+            select.innerHTML = '<option value="">No lectures scheduled today</option>';
+            return;
+        }
+
+        timetables.forEach(t => {
+            select.innerHTML += `<option value="${t.timetable_id}" data-classid="${t.class_id}">${t.start_time_str || t.start_time} - ${t.subject_name} (${t.class_name})</option>`;
         });
+    } catch (e) {
+        select.innerHTML = '<option value="">Error loading lectures</option>';
     }
 }
 
-function fetchStudentsForAttendance() {
+async function fetchStudentsForAttendance() {
     const select = document.getElementById('markAttLecture');
     const dateStr = document.getElementById('markAttDate').value;
     if (!select || !select.value || !dateStr) {
         showToast('Please select date and lecture.', 'error');
         return;
     }
-    
-    const selectedOpt = select.options[select.selectedIndex];
-    const classId = selectedOpt.getAttribute('data-classid');
-    const lecture = mockLectures.find(l => l.id === select.value);
-    const students = mockStudentsByClass[classId] || [];
-    
-    window.currentAttLecture = lecture;
-    window.currentAttStudents = students;
-    
-    const countLabel = document.getElementById('markAttCountLabel');
-    if (countLabel && lecture) {
-        countLabel.textContent = `Roll Call for ${lecture.name} (${lecture.className}) - ${students.length} Students`;
-    }
 
-    document.getElementById('markAttStudentsContainer').style.display = 'block';
-    const tbody = document.querySelector('#markAttendanceTable tbody');
-    if (tbody) {
+    const timetableId = select.value;
+    const timetables = window.todayTimetable || [];
+    const lecture = timetables.find(t => String(t.timetable_id) === String(timetableId));
+    if (!lecture) return;
+
+    window.currentAttLecture = lecture;
+
+    try {
+        const res = await fetch(`/api/classes/${lecture.class_id}/students`);
+        if (!res.ok) {
+            showToast('Error loading students.', 'error');
+            return;
+        }
+        const students = await res.json();
+
+        window.currentAttStudents = students || [];
+
+        const countLabel = document.getElementById('markAttCountLabel');
+        if (countLabel) {
+            countLabel.textContent = `Roll Call for ${lecture.subject_name} (${lecture.class_name}) - ${students.length} Students`;
+        }
+
+        document.getElementById('markAttStudentsContainer').style.display = 'block';
+        const tbody = document.querySelector('#markAttendanceTable tbody');
+        if (!tbody) return;
+
         tbody.innerHTML = '';
+        if (students.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-user-slash d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                        No students enrolled in this class yet.<br>
+                        <button class="btn-primary-custom mt-2" data-bs-toggle="modal" data-bs-target="#addStudentModal" style="font-size: 12px;">
+                            <i class="fa-solid fa-user-plus me-1"></i> Add Student Now
+                        </button>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
         students.forEach(s => {
             tbody.innerHTML += `
                 <tr>
@@ -353,13 +440,14 @@ function fetchStudentsForAttendance() {
                 </tr>
             `;
         });
+    } catch (e) {
+        showToast('Network error loading students.', 'error');
     }
 }
 
 function setStudentStatus(btnEl, status) {
     const group = btnEl.closest('.status-btn-group');
     if (!group) return;
-    
     group.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
     btnEl.classList.add('active');
     group.setAttribute('data-status', status);
@@ -375,7 +463,7 @@ function markAll(status) {
     showToast(`Marked all students as **${status.toUpperCase()}**`, 'info');
 }
 
-function submitAttendance() {
+async function submitAttendance() {
     const select = document.getElementById('markAttLecture');
     const dateStr = document.getElementById('markAttDate').value;
     const lecture = window.currentAttLecture;
@@ -384,63 +472,71 @@ function submitAttendance() {
     const groups = document.querySelectorAll('.status-btn-group');
     if (groups.length === 0) return;
 
-    // Filter out previous records for this date and subject
-    attendanceHistoryStore = attendanceHistoryStore.filter(r => !(r.attendance_date === dateStr && r.subject_code === lecture.code));
-
+    const attendanceRecords = [];
     groups.forEach(group => {
-        const studentName = group.getAttribute('data-studentname');
-        const rollNo = group.getAttribute('data-roll');
+        const studentId = group.getAttribute('data-studentid');
         const status = group.getAttribute('data-status') || 'present';
-
-        attendanceHistoryStore.unshift({
-            attendance_date: dateStr,
-            class_name: lecture.className,
-            subject_code: lecture.code,
-            subject_name: lecture.name,
-            student_name: studentName,
-            roll_number: rollNo,
-            status: status
-        });
+        attendanceRecords.push({ student_id: parseInt(studentId), status: status });
     });
 
-    localStorage.setItem('smart_attendance_history', JSON.stringify(attendanceHistoryStore));
-    showToast(`Attendance recorded successfully for **${lecture.name}**!`, 'success');
+    try {
+        const res = await fetch('/api/attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                timetable_id: lecture.timetable_id,
+                date: dateStr,
+                attendance: attendanceRecords
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            showToast(`Attendance recorded successfully for **${lecture.subject_name}**!`, 'success');
+            loadDashboardStats();
+        } else {
+            showToast(data.error || 'Failed to submit attendance.', 'error');
+        }
+    } catch (e) {
+        showToast('Error submitting attendance.', 'error');
+    }
 }
 
-function loadAttendanceHistory() {
+async function loadAttendanceHistory() {
     const dateInput = document.getElementById('historyDateInput');
     if (dateInput && !dateInput.value) {
         dateInput.value = todayStr;
     }
-    filterAttendanceHistory();
+
+    try {
+        const res = await fetch('/api/attendance');
+        if (!res.ok) return;
+        const records = await res.json();
+        window.attendanceHistoryCache = records || [];
+
+        filterAttendanceHistory();
+    } catch (e) {
+        console.error("Attendance history error:", e);
+    }
 }
 
 function filterAttendanceHistory() {
     const selectedDate = document.getElementById('historyDateInput').value;
-    const selectedLectureCode = document.getElementById('historyLectureSelect').value;
     const selectedStatus = document.getElementById('historyStatusSelect').value;
+    let records = window.attendanceHistoryCache || [];
 
-    let filtered = [...attendanceHistoryStore];
-
-    // Filter by Date if selected
     if (selectedDate) {
-        filtered = filtered.filter(r => r.attendance_date === selectedDate);
+        records = records.filter(r => r.attendance_date === selectedDate);
     }
 
-    // Filter by Lecture/Subject code if selected (not ALL)
-    if (selectedLectureCode && selectedLectureCode !== 'ALL') {
-        filtered = filtered.filter(r => r.subject_code === selectedLectureCode);
-    }
-
-    // Filter by Status if selected (not ALL)
     if (selectedStatus && selectedStatus !== 'ALL') {
-        filtered = filtered.filter(r => r.status === selectedStatus);
+        records = records.filter(r => r.status === selectedStatus);
     }
 
-    // Calculate Summary Stats
-    const totalCount = filtered.length;
-    const presentCount = filtered.filter(r => r.status === 'present').length;
-    const absentCount = filtered.filter(r => r.status === 'absent').length;
+    const totalCount = records.length;
+    const presentCount = records.filter(r => r.status === 'present').length;
+    const absentCount = records.filter(r => r.status === 'absent').length;
     const rate = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) + '%' : '0%';
 
     const totalEl = document.getElementById('historyTotalCount');
@@ -453,162 +549,128 @@ function filterAttendanceHistory() {
     if (absentEl) absentEl.textContent = absentCount;
     if (rateEl) rateEl.textContent = rate;
 
-    // Render Table Rows
     const tbody = document.querySelector('#attendanceHistoryTableData tbody');
     if (!tbody) return;
 
     tbody.innerHTML = '';
 
-    if (filtered.length === 0) {
+    if (records.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="5" class="text-center py-4 text-muted">
                     <i class="fa-solid fa-folder-open d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
-                    No attendance records found for the selected Date & Lecture.
+                    No attendance records found for the selected filter.
                 </td>
             </tr>
         `;
         return;
     }
 
-    filtered.forEach(row => {
-        let badgeClass = 'status-present';
-        let statusLabel = 'Present';
-        if (row.status === 'absent') {
-            badgeClass = 'status-absent';
-            statusLabel = 'Absent';
-        } else if (row.status === 'late') {
-            badgeClass = 'status-late';
-            statusLabel = 'Late';
-        }
-
+    records.forEach(row => {
+        let badgeClass = row.status === 'present' ? 'status-present' : row.status === 'absent' ? 'status-absent' : 'status-late';
         tbody.innerHTML += `
             <tr>
                 <td class="fw-semibold text-secondary" style="font-size: 12px;">${row.attendance_date}</td>
                 <td><span class="fw-medium">${row.class_name}</span></td>
                 <td>${row.subject_name}</td>
                 <td class="fw-medium">${row.student_name} <span class="text-muted" style="font-size: 11px;">(Roll: ${row.roll_number})</span></td>
-                <td><span class="status-badge ${badgeClass}">${statusLabel}</span></td>
+                <td><span class="status-badge ${badgeClass}">${row.status}</span></td>
             </tr>
         `;
     });
 }
 
-// --- Quick Actions Click Simulations ---
-function triggerAction(actionName) {
-    showToast(`Quick Action Triggered: **${actionName}**`, 'success');
+// --- Create Class Form Handler ---
+async function submitCreateClass(e) {
+    e.preventDefault();
+    const className = document.getElementById('createClassName').value.trim();
+    const subjectName = document.getElementById('createSubjectName').value.trim();
+    const subjectCode = document.getElementById('createSubjectCode').value.trim();
+    const semester = document.getElementById('createSemester').value;
+
+    try {
+        const res = await fetch('/api/classes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                className: className,
+                section_name: className,
+                subjectName: subjectName,
+                subject_name: subjectName,
+                subjectCode: subjectCode,
+                semester: semester
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            showToast(`Class **${className}** created successfully!`, 'success');
+            const modalEl = document.getElementById('createClassModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+
+            document.getElementById('createClassForm').reset();
+            loadMyClasses();
+            loadDashboardStats();
+        } else {
+            showToast(data.error || 'Failed to create class.', 'error');
+        }
+    } catch (err) {
+        showToast('Error creating class.', 'error');
+    }
 }
 
-// --- Student Detail View Modal Simulation ---
-const mockStudentDatabase = {
-    "Rahul Sharma": {
-        roll: "101",
-        class: "SY Computer A",
-        attendance: "88.5%",
-        lectures: "52 / 60",
-        parentName: "Mr. Ramesh Sharma",
-        parentContact: "+91 98765 43210",
-        img: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=120"
-    },
-    "Amit Patil": {
-        roll: "102",
-        class: "SY Computer A",
-        attendance: "64.2%",
-        lectures: "38 / 60",
-        parentName: "Mr. Sunil Patil",
-        parentContact: "Not Available",
-        img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120"
-    },
-    "Sneha Kulkarni": {
-        roll: "103",
-        class: "SY Computer A",
-        attendance: "78.3%",
-        lectures: "47 / 60",
-        parentName: "Mrs. V. Kulkarni",
-        parentContact: "+91 91234 56789",
-        img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120"
-    },
-    "Vikram Singh": {
-        roll: "104",
-        class: "SY Computer A",
-        attendance: "93.3%",
-        lectures: "56 / 60",
-        parentName: "Mr. Rajendra Singh",
-        parentContact: "+91 95432 10987",
-        img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=120"
-    },
-    "Priya Joshi": {
-        roll: "105",
-        class: "SY Computer A",
-        attendance: "81.6%",
-        lectures: "49 / 60",
-        parentName: "Mr. Anant Joshi",
-        parentContact: "+91 98712 34567",
-        img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=120"
+// --- Add Student Form Handler ---
+async function submitAddStudent(e) {
+    e.preventDefault();
+    const classId = document.getElementById('addStudentClassSelect').value;
+    const rollNumber = document.getElementById('addStudentRoll').value.trim();
+    const fullName = document.getElementById('addStudentName').value.trim();
+    const email = document.getElementById('addStudentEmail').value.trim();
+    const parentName = document.getElementById('addStudentParentName').value.trim();
+    const parentPhone = document.getElementById('addStudentParentPhone').value.trim();
+
+    if (!classId) {
+        showToast('Please select a class first.', 'error');
+        return;
     }
-};
+
+    try {
+        const res = await fetch('/api/students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                class_id: classId,
+                roll_number: rollNumber,
+                full_name: fullName,
+                email: email,
+                parent_name: parentName,
+                parent_phone: parentPhone
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            showToast(`Student **${fullName}** added successfully!`, 'success');
+            const modalEl = document.getElementById('addStudentModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+
+            document.getElementById('addStudentForm').reset();
+            loadMyClasses();
+            loadDashboardStats();
+        } else {
+            showToast(data.error || 'Failed to add student.', 'error');
+        }
+    } catch (err) {
+        showToast('Error adding student.', 'error');
+    }
+}
 
 function viewStudentDetails(studentName, rollNo) {
-    const student = mockStudentDatabase[studentName] || {
-        roll: rollNo,
-        class: "SY Computer A",
-        attendance: "80.0%",
-        lectures: "48 / 60",
-        parentName: "N/A",
-        parentContact: "N/A",
-        img: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=120"
-    };
-
-    // Update modal elements
-    document.getElementById('modalStudentImg').src = student.img;
-    document.getElementById('modalStudentName').textContent = studentName;
-    document.getElementById('modalStudentRoll').textContent = `Roll No: ${student.roll} | ${student.class}`;
-    
-    const attendanceVal = document.getElementById('modalStudentAttendance') || document.querySelector('#studentDetailModal .text-success, #studentDetailModal .text-danger');
-    if (attendanceVal) {
-        attendanceVal.textContent = student.attendance;
-        if (parseFloat(student.attendance) < 75) {
-            attendanceVal.className = 'fw-bold text-danger';
-        } else {
-            attendanceVal.className = 'fw-bold text-success';
-        }
-    }
-
-    const lecturesVal = document.querySelector('#studentDetailModal .row .col-6:nth-child(2) span:last-child');
-    lecturesVal.textContent = student.lectures;
-    
-    const parentNameVal = document.querySelector('#studentDetailModal .row .col-6:nth-child(3) span:last-child');
-    parentNameVal.textContent = student.parentName;
-
-    const parentContactVal = document.querySelector('#studentDetailModal .row .col-6:nth-child(4) span:last-child');
-    parentContactVal.innerHTML = `<i class="fa-solid fa-phone me-1"></i> ${student.parentContact}`;
-
-    // Show modal using Bootstrap instance
-    const modalElement = document.getElementById('studentDetailModal');
-    const modalInstance = new bootstrap.Modal(modalElement);
-    modalInstance.show();
+    showToast(`Viewing student profile for **${studentName}** (Roll: ${rollNo})`, 'info');
 }
 
-// --- Parent Contact Action Simulation ---
-function simulateContactParent() {
-    const studentName = document.getElementById('modalStudentName').textContent;
-    const student = mockStudentDatabase[studentName];
-    
-    if (!student || student.parentContact === "Not Available") {
-        showToast(`Cannot send notification: No contact info for ${studentName}'s parents.`, 'error');
-    } else {
-        showToast(`Successfully dispatched parent notification alert for **${studentName}** via WhatsApp!`, 'success');
-        
-        // Hide modal
-        const modalElement = document.getElementById('studentDetailModal');
-        const modalInstance = bootstrap.Modal.getInstance(modalElement);
-        if (modalInstance) {
-            modalInstance.hide();
-        }
-    }
-}
-
-// --- Logout Handler ---
 function simulateLogout() {
     if (confirm("Are you sure you want to logout of Smart Attendance ERP?")) {
         showToast("Logging out...", "info");
@@ -622,9 +684,12 @@ function simulateLogout() {
     }
 }
 
-// --- Custom Modern Toast System ---
+function triggerAction(actionName) {
+    showToast(`Action Triggered: **${actionName}**`, 'info');
+}
+
+// --- Custom Toast Notification ---
 function showToast(message, type = 'info') {
-    // Create toast container if it doesn't exist
     let toastContainer = document.getElementById('toastContainer');
     if (!toastContainer) {
         toastContainer = document.createElement('div');
@@ -639,38 +704,32 @@ function showToast(message, type = 'info') {
         document.body.appendChild(toastContainer);
     }
 
-    // Colors according to toast type
-    let bgColor = 'var(--primary-dark)';
+    let bgColor = 'var(--primary-dark, #0d3b4c)';
     let icon = '<i class="fa-solid fa-circle-info me-2"></i>';
     if (type === 'success') {
-        bgColor = 'var(--present)';
+        bgColor = '#059669';
         icon = '<i class="fa-solid fa-circle-check me-2"></i>';
     } else if (type === 'error') {
-        bgColor = 'var(--absent)';
+        bgColor = '#dc2626';
         icon = '<i class="fa-solid fa-circle-xmark me-2"></i>';
     }
 
-    // Build the Toast Element
     const toast = document.createElement('div');
     toast.style.background = bgColor;
     toast.style.color = '#ffffff';
     toast.style.padding = '0.75rem 1.25rem';
     toast.style.borderRadius = '8px';
-    toast.style.border = '1px solid rgba(255, 255, 255, 0.15)';
-    toast.style.boxShadow = '0 8px 24px rgba(18, 52, 59, 0.2)';
+    toast.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.2)';
     toast.style.fontSize = '0.825rem';
     toast.style.fontWeight = '500';
     toast.style.display = 'flex';
     toast.style.alignItems = 'center';
-    toast.style.animation = 'fadeIn 0.25s ease forwards';
     toast.style.minWidth = '280px';
     toast.style.maxWidth = '380px';
 
-    // Parse Markdown bold elements **
     const formattedMsg = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     toast.innerHTML = `${icon} <span style="flex-grow: 1;">${formattedMsg}</span>`;
 
-    // Add dismiss button
     const closeBtn = document.createElement('button');
     closeBtn.innerHTML = '&times;';
     closeBtn.style.background = 'none';
@@ -679,30 +738,13 @@ function showToast(message, type = 'info') {
     closeBtn.style.fontSize = '1.2rem';
     closeBtn.style.cursor = 'pointer';
     closeBtn.style.marginLeft = '1rem';
-    closeBtn.style.padding = '0';
-    closeBtn.style.lineHeight = '1';
-    closeBtn.addEventListener('click', () => {
-        toast.remove();
-    });
+    closeBtn.addEventListener('click', () => toast.remove());
     toast.appendChild(closeBtn);
 
     toastContainer.appendChild(toast);
 
-    // Auto-remove after 4 seconds
     setTimeout(() => {
-        toast.style.animation = 'fadeOut 0.3s ease forwards';
-        setTimeout(() => {
-            toast.remove();
-        }, 300);
+        toast.remove();
     }, 4000);
 }
 
-// Add animation keyframes for toast in JS (since they are generated dynamically)
-const style = document.createElement('style');
-style.innerHTML = `
-    @keyframes fadeOut {
-        from { opacity: 1; transform: translateY(0); }
-        to { opacity: 0; transform: translateY(15px); }
-    }
-`;
-document.head.appendChild(style);

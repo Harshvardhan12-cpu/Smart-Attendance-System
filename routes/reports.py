@@ -6,12 +6,14 @@ reports_bp = Blueprint('reports', __name__)
 
 @reports_bp.route('/dashboard-stats', methods=['GET'])
 def get_dashboard_stats():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
     teacher_id = session.get('teacher_id')
     today = datetime.now().date()
     today_str = today.strftime('%Y-%m-%d')
     day_name = datetime.now().strftime('%A')
     
-    # Base params
     stats = {
         'todays_classes': 0,
         'todays_classes_completed': 0,
@@ -19,7 +21,8 @@ def get_dashboard_stats():
         'attendance_submitted': 0,
         'students_present': 0,
         'students_absent': 0,
-        'pending_attendance': 0
+        'pending_attendance': 0,
+        'attendance_rate': 0
     }
     
     if not teacher_id:
@@ -32,12 +35,12 @@ def get_dashboard_stats():
         JOIN teacher_subjects ts ON t.teacher_subject_id = ts.teacher_subject_id
         WHERE ts.teacher_id = %s AND t.day_of_week = %s
     """
-    todays_tts = execute_query(tt_query, (teacher_id, day_name), fetchall=True)
+    todays_tts = execute_query(tt_query, (teacher_id, day_name), fetchall=True) or []
     stats['todays_classes'] = len(todays_tts)
     
     timetable_ids = [tt['timetable_id'] for tt in todays_tts]
     
-    # 2. Students Assigned
+    # 2. Students Assigned across this teacher's classes
     assigned_query = """
         SELECT COUNT(DISTINCT s.student_id) as count
         FROM students s
@@ -77,15 +80,38 @@ def get_dashboard_stats():
         """
         abse = execute_query(abs_query, tuple(params), fetchone=True)
         stats['students_absent'] = abse['count'] if abse else 0
-        
+
+        total_marked = stats['students_present'] + stats['students_absent']
+        if total_marked > 0:
+            stats['attendance_rate'] = round((stats['students_present'] / total_marked) * 100, 1)
+
     return jsonify(stats), 200
 
 @reports_bp.route('/attendance-summary', methods=['GET'])
 def get_attendance_summary():
-    # Example logic for reports page
-    # Just returning some placeholder structure since full reports require complex grouping
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    teacher_id = session.get('teacher_id')
+    if not teacher_id:
+        return jsonify({'total_lectures': 0, 'average_attendance': 0}), 200
+
+    query = """
+        SELECT COUNT(DISTINCT a.attendance_id) as total_records,
+               SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count
+        FROM attendance a
+        JOIN timetables t ON a.timetable_id = t.timetable_id
+        JOIN teacher_subjects ts ON t.teacher_subject_id = ts.teacher_subject_id
+        WHERE ts.teacher_id = %s
+    """
+    res = execute_query(query, (teacher_id,), fetchone=True)
+    total = res['total_records'] if res else 0
+    present = res['present_count'] if res else 0
+    rate = round((present / total * 100), 1) if total > 0 else 0
+
     summary = {
-        'total_lectures': 120,
-        'average_attendance': 85.5
+        'total_lectures': total,
+        'average_attendance': rate
     }
     return jsonify(summary), 200
+
