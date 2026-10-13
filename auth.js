@@ -38,6 +38,33 @@
         },
 
         /**
+         * Redirect to dashboard if already authenticated.
+         * Verifies with the server to prevent infinite redirect loops
+         * caused by stale client-side storage vs. expired server sessions.
+         */
+        redirectIfAuthenticated: async function () {
+            if (!this.isAuthenticated()) {
+                return false;
+            }
+            // Verify the server session is still valid before redirecting
+            try {
+                const res = await fetch('/api/current-user', { credentials: 'same-origin' });
+                if (res.ok) {
+                    window.location.replace('/dashboard');
+                    return true;
+                } else {
+                    // Server session expired — clear stale client storage
+                    sessionStorage.removeItem(STORAGE_KEY_SESSION);
+                    localStorage.removeItem(STORAGE_KEY_SESSION);
+                    return false;
+                }
+            } catch (e) {
+                // Network error — don't redirect, let the user try to log in
+                return false;
+            }
+        },
+
+        /**
          * Authenticate user with backend API
          */
         login: async function (email, password, rememberMe = false) {
@@ -176,43 +203,32 @@
             localStorage.removeItem(STORAGE_KEY_SESSION);
 
             const isInsideAuth = window.location.pathname.toLowerCase().includes('/authentication/');
-            const target = redirectPath || (isInsideAuth ? 'login.html' : 'Authentication/login.html');
+            const target = redirectPath || '/login';
             window.location.replace(target);
         },
 
-        /**
-         * Protect routes from unauthenticated access
-         */
         protectRoute: function () {
-            if (!this.isAuthenticated()) {
-                const isInsideAuth = window.location.pathname.toLowerCase().includes('/authentication/');
-                const loginTarget = isInsideAuth ? 'login.html' : 'Authentication/login.html';
-                
-                document.documentElement.style.visibility = 'hidden';
-                window.location.replace(loginTarget);
-                return false;
-            }
-            return true;
-        },
+    // Hide page until the server confirms the session
+    document.documentElement.style.visibility = 'hidden';
 
-        /**
-         * Redirect authenticated users away from login/signup pages to the dashboard
-         */
-        redirectIfAuthenticated: function () {
-            if (this.isAuthenticated()) {
-                const isInsideAuth = window.location.pathname.toLowerCase().includes('/authentication/');
-                const dashboardTarget = isInsideAuth ? '../teacher-dashboard.html' : 'teacher-dashboard.html';
-                
-                document.documentElement.style.visibility = 'hidden';
-                window.location.replace(dashboardTarget);
-                return true;
+    fetch('/api/current-user', { credentials: 'same-origin' })
+        .then(res => {
+            if (res.ok) {
+                document.documentElement.style.visibility = 'visible';
+            } else {
+                sessionStorage.removeItem(STORAGE_KEY_SESSION);
+                localStorage.removeItem(STORAGE_KEY_SESSION);
+                window.location.replace('/login');
             }
-            return false;
-        },
+        })
+        .catch(() => {
+            document.documentElement.style.visibility = 'visible';
+        });
 
-        /**
-         * Update user details in header UI on teacher-dashboard.html
-         */
+    return true;
+},
+        //  * Update user details in header UI on teacher-dashboard.html
+        //  */
         syncProfileUI: async function () {
             try {
                 const res = await fetch('/api/current-user');

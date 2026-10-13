@@ -108,14 +108,19 @@
     <!-- Core Authentication Controller -->
     <script src="auth.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                if (window.AuthService && window.AuthService.isAuthenticated()) {
-                    window.location.replace('teacher-dashboard.html');
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/current-user');
+                if (res.ok) {
+                    window.location.replace('/dashboard');
                 } else {
-                    window.location.replace('Authentication/login.html');
+                    localStorage.removeItem('smart_attendance_auth_session');
+                    sessionStorage.removeItem('smart_attendance_auth_session');
+                    window.location.replace('/login');
                 }
-            }, 150);
+            } catch (e) {
+                window.location.replace('/login');
+            }
         });
     </script>
 </body>

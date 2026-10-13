@@ -11,14 +11,14 @@
     <!-- Font Awesome 6.5.1 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Authentication ERP Stylesheet -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/Authentication/css/style.css">
 </head>
 <body>
 
     <div class="page-shell">
         <!-- Top Navigation Header -->
         <header class="topbar">
-            <a class="brand" href="login.html">
+            <a class="brand" href="/login">
                 <div class="brand-mark">
                     <i class="fa-solid fa-graduation-cap"></i>
                 </div>
@@ -139,7 +139,7 @@
                                 <input type="checkbox" id="rememberMe">
                                 <span>Remember me</span>
                             </label>
-                            <a href="forgot-password.html" class="auth-link">Forgot password?</a>
+                            <a href="/Authentication/forgot-password.html" class="auth-link">Forgot password?</a>
                         </div>
 
                         <!-- Submit Button -->
@@ -151,7 +151,7 @@
                         <!-- Secondary Links -->
                         <div class="auth-footer-links">
                             <span>Don't have an account?</span>
-                            <a href="signup.html">Create an account</a>
+                            <a href="/signup">Create an account</a>
                         </div>
                     </form>
 
@@ -172,12 +172,21 @@
     </div>
 
     <!-- Core Authentication Controller -->
-    <script src="../auth.js"></script>
+    <script src="/auth.js"></script>
     <script>
-        // Guard: If already authenticated, redirect to Dashboard immediately
-        if (window.AuthService && window.AuthService.redirectIfAuthenticated()) {
-            // Redirecting...
-        }
+        // Guard: If already authenticated, verify with server then redirect to Dashboard
+        // Hide the page until the check resolves to prevent content flash
+        document.documentElement.style.visibility = 'hidden';
+        (async function () {
+            if (window.AuthService) {
+                const redirected = await window.AuthService.redirectIfAuthenticated();
+                if (!redirected) {
+                    document.documentElement.style.visibility = 'visible';
+                }
+            } else {
+                document.documentElement.style.visibility = 'visible';
+            }
+        })();
 
         document.addEventListener('DOMContentLoaded', () => {
             const loginForm = document.getElementById('loginForm');
@@ -268,7 +277,7 @@
                     
                     btnText.textContent = 'Redirecting to Dashboard...';
                     // Redirect immediately to the approved ERP Dashboard
-                    window.location.replace('../teacher-dashboard.html');
+                    window.location.replace('/dashboard');
                 } catch (err) {
                     submitBtn.disabled = false;
                     btnSpinner.classList.remove('active');

@@ -121,12 +121,30 @@ def get_class_students(class_id):
     if not ts and session.get('role') != 'admin':
         return jsonify({'error': 'Forbidden access to class students'}), 403
 
-    query = """
-        SELECT student_id, roll_number, enrollment_number, full_name, email, phone, parent_name, parent_phone 
-        FROM students 
-        WHERE class_id = %s AND is_active = 1
-        ORDER BY CAST(roll_number AS UNSIGNED), roll_number
-    """
-    students = execute_query(query, (class_id,), fetchall=True) or []
+    timetable_id = request.args.get('timetable_id')
+    date_str = request.args.get('date')
+
+    if timetable_id and date_str:
+        query = """
+            SELECT s.student_id, s.roll_number, s.enrollment_number, s.full_name, s.email, s.phone, s.parent_name, s.parent_phone,
+                   a.status as attendance_status, a.marked_at
+            FROM students s
+            LEFT JOIN attendance a ON s.student_id = a.student_id AND a.timetable_id = %s AND a.attendance_date = %s
+            WHERE s.class_id = %s AND s.is_active = 1
+            ORDER BY CAST(s.roll_number AS UNSIGNED), s.roll_number
+        """
+        students = execute_query(query, (timetable_id, date_str, class_id), fetchall=True) or []
+        for s in students:
+            if s.get('marked_at'):
+                s['marked_at'] = str(s['marked_at'])
+    else:
+        query = """
+            SELECT student_id, roll_number, enrollment_number, full_name, email, phone, parent_name, parent_phone 
+            FROM students 
+            WHERE class_id = %s AND is_active = 1
+            ORDER BY CAST(roll_number AS UNSIGNED), roll_number
+        """
+        students = execute_query(query, (class_id,), fetchall=True) or []
+
     return jsonify(students), 200
 

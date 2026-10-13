@@ -11,14 +11,14 @@
     <!-- Font Awesome 6.5.1 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Authentication ERP Stylesheet -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/Authentication/css/style.css">
 </head>
 <body>
 
     <div class="page-shell">
         <!-- Top Navigation Header -->
         <header class="topbar">
-            <a class="brand" href="login.html">
+            <a class="brand" href="/login">
                 <div class="brand-mark">
                     <i class="fa-solid fa-graduation-cap"></i>
                 </div>
@@ -105,14 +105,14 @@
                             <i class="fa-solid fa-rotate-right me-1"></i> <span id="resendText">Resend verification email</span>
                         </button>
 
-                        <a href="login.html" class="btn-secondary-action" style="margin-top: 0.25rem;">
+                        <a href="/login" class="btn-secondary-action" style="margin-top: 0.25rem;">
                             <i class="fa-solid fa-arrow-left me-1"></i> Back to Sign In
                         </a>
                     </div>
 
                     <div class="auth-footer-links">
                         <span>Need to use a 6-digit OTP code instead?</span>
-                        <a href="otp-verification.html">Verify with OTP</a>
+                        <a href="/Authentication/otp-verification.html">Verify with OTP</a>
                     </div>
 
                 </div>
@@ -132,7 +132,7 @@
     </div>
 
     <!-- Core Authentication Controller -->
-    <script src="../auth.js"></script>
+    <script src="/auth.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const resendBtn = document.getElementById('resendBtn');
@@ -171,7 +171,7 @@
                 verifyNowBtn.disabled = true;
                 verifyNowBtn.innerHTML = '<span class="btn-spinner active me-2"></span> Finalizing verification...';
                 setTimeout(() => {
-                    window.location.replace('../teacher-dashboard.html');
+                    window.location.replace('/dashboard');
                 }, 600);
             });
         });

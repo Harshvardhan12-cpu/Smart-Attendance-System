@@ -115,574 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (historyStatusSelect) historyStatusSelect.addEventListener('change', filterAttendanceHistory);
 });
 
-// --- Today's Schedule Management & Persistence ---
-const STORAGE_KEY_SCHEDULE = 'smart_attendance_today_schedule';
-const DIVISION_OPTIONS = [
-    "SY Computer A",
-    "SY Computer B",
-    "TY IT A",
-    "TY IT B",
-    "Final Year CS"
-];
-
-const DEFAULT_TODAY_SCHEDULE = [
-    {
-        id: "sch_1",
-        time: "09:00 AM",
-        subject: "Data Structures",
-        className: "SY Computer A",
-        room: "Lab 5",
-        status: "Completed"
-    },
-    {
-        id: "sch_2",
-        time: "11:15 AM",
-        subject: "Operating Systems",
-        className: "TY IT B",
-        room: "Room 302",
-        status: "Completed"
-    },
-    {
-        id: "sch_3",
-        time: "02:00 PM",
-        subject: "Software Engineering",
-        className: "SY Computer A",
-        room: "Room 204",
-        status: "Pending"
-    },
-    {
-        id: "sch_4",
-        time: "03:45 PM",
-        subject: "Machine Learning",
-        className: "Final Year CS",
-        room: "Lab 2",
-        status: "Upcoming"
-    }
-];
-
-function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-function formatTimeRange(timeStr) {
-    if (!timeStr) return "Scheduled";
-    if (timeStr.includes("–") || timeStr.includes("-")) {
-        return timeStr;
-    }
-    const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-    if (!match) return timeStr;
-    let hour = parseInt(match[1], 10);
-    const min = match[2];
-    let ampm = match[3].toUpperCase();
-    
-    let endHour = hour + 1;
-    let endAmpm = ampm;
-    if (endHour === 12) {
-        endAmpm = (ampm === 'AM') ? 'PM' : 'AM';
-    } else if (endHour > 12) {
-        endHour = endHour - 12;
-    }
-    const padHour = String(endHour).padStart(2, '0');
-    return `${timeStr} – ${padHour}:${min} ${endAmpm}`;
-}
-
-function formatNextLectureTime(currentTimeStr) {
-    if (!currentTimeStr) return '04:30 PM';
-    const match = currentTimeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-    if (!match) return '04:30 PM';
-    let hour = parseInt(match[1], 10);
-    const min = match[2];
-    let ampm = match[3].toUpperCase();
-    hour = hour + 1;
-    if (hour === 12) {
-        ampm = (ampm === 'AM') ? 'PM' : 'AM';
-    } else if (hour > 12) {
-        hour = hour - 12;
-    }
-    return `${String(hour).padStart(2, '0')}:${min} ${ampm}`;
-}
-
-function getTodaySchedule() {
-    const saved = localStorage.getItem(STORAGE_KEY_SCHEDULE);
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed)) {
-                return parsed;
-            }
-        } catch (e) {
-            console.error("Error reading stored schedule:", e);
-        }
-    }
-    return JSON.parse(JSON.stringify(DEFAULT_TODAY_SCHEDULE));
-}
-
-function renderTodaySchedule(schedule) {
-    const tbody = document.getElementById('todayScheduleTbody');
-    if (!tbody) return;
-
-    if (!schedule || schedule.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center py-4 text-muted">
-                    <i class="fa-regular fa-calendar-xmark d-block mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
-                    No classes scheduled for today. Click <strong>✏️ Edit</strong> above to add lectures.
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    tbody.innerHTML = schedule.map(item => {
-        let badgeHtml = '';
-        let actionBtnHtml = '';
-        const safeSubject = escapeHtml(item.subject);
-        
-        if (item.status === 'Completed') {
-            badgeHtml = `<span class="status-badge status-present"><i class="fa-solid fa-circle-check"></i> Completed</span>`;
-            actionBtnHtml = `<button class="btn-outline-custom" onclick="triggerAction('View Attendance - ${safeSubject}')"><i class="fa-regular fa-eye"></i> View</button>`;
-        } else if (item.status === 'Pending') {
-            badgeHtml = `<span class="status-badge status-inprogress"><i class="fa-solid fa-rotate"></i> Pending</span>`;
-            actionBtnHtml = `<button class="btn-primary-custom" onclick="simulateNav('Mark Attendance')"><i class="fa-solid fa-clipboard-user"></i> Mark</button>`;
-        } else {
-            badgeHtml = `<span class="status-badge status-upcoming"><i class="fa-regular fa-clock"></i> Upcoming</span>`;
-            actionBtnHtml = `<button class="btn-outline-custom" onclick="triggerAction('Class Details - ${safeSubject}')"><i class="fa-solid fa-arrow-right"></i> Details</button>`;
-        }
-
-        return `
-            <tr>
-                <td class="fw-semibold">${escapeHtml(item.time)}</td>
-                <td class="fw-medium">${safeSubject}</td>
-                <td>${escapeHtml(item.className)}</td>
-                <td>${escapeHtml(item.room)}</td>
-                <td>${badgeHtml}</td>
-                <td class="text-end">${actionBtnHtml}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
-function updateDashboardScheduleStats(schedule) {
-    const total = schedule.length;
-    const completed = schedule.filter(s => s.status === 'Completed').length;
-    const pending = schedule.filter(s => s.status === 'Pending').length;
-    const remaining = total - completed;
-
-    // 1. Badge next to card title
-    const sessionBadge = document.getElementById('scheduleSessionBadge');
-    if (sessionBadge) {
-        sessionBadge.textContent = `${total} ${total === 1 ? 'Session' : 'Sessions'}`;
-    }
-
-    // 2. Stat 1 (Today's Classes)
-    const statTodayClasses = document.getElementById('statTodayClasses');
-    if (statTodayClasses) {
-        statTodayClasses.textContent = `${total} ${total === 1 ? 'Lecture' : 'Lectures'}`;
-    }
-    const statTodayDesc = document.getElementById('statTodayDesc');
-    if (statTodayDesc) {
-        statTodayDesc.textContent = `${completed} Completed, ${remaining} Remaining`;
-    }
-
-    // 3. Welcome Bar Subtext
-    const welcomeSubtext = document.getElementById('welcomeSubtext');
-    if (welcomeSubtext) {
-        welcomeSubtext.textContent = `You have ${remaining} ${remaining === 1 ? 'class' : 'classes'} remaining today and ${pending} attendance ${pending === 1 ? 'record' : 'records'} pending.`;
-    }
-
-    // 4. Stat 3 (Attendance Submitted)
-    const statAttendanceSubmitted = document.getElementById('statAttendanceSubmitted');
-    if (statAttendanceSubmitted) {
-        statAttendanceSubmitted.textContent = `${completed} / ${total} Classes`;
-    }
-    const statAttendanceSubmittedDesc = document.getElementById('statAttendanceSubmittedDesc');
-    if (statAttendanceSubmittedDesc) {
-        const submitPct = total > 0 ? Math.round((completed / total) * 100) : 0;
-        statAttendanceSubmittedDesc.textContent = `${submitPct}% daily submission`;
-    }
-
-    // 5. Stat 6 (Pending Attendance)
-    const statPendingAttendance = document.getElementById('statPendingAttendance');
-    if (statPendingAttendance) {
-        statPendingAttendance.textContent = `${pending} ${pending === 1 ? 'Class' : 'Classes'}`;
-    }
-    const statPendingAttendanceDesc = document.getElementById('statPendingAttendanceDesc');
-    if (statPendingAttendanceDesc) {
-        statPendingAttendanceDesc.textContent = pending > 0 ? 'Due before 05:00 PM' : 'All submitted';
-    }
-
-    // 6. Attendance Summary Widget (Pending Verification)
-    const summaryPendingCount = document.getElementById('summaryPendingCount');
-    if (summaryPendingCount) {
-        summaryPendingCount.textContent = `${pending} ${pending === 1 ? 'Class' : 'Classes'}`;
-    }
-    const summaryPendingBar = document.getElementById('summaryPendingBar');
-    if (summaryPendingBar) {
-        const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
-        summaryPendingBar.style.width = `${pendingPct}%`;
-    }
-
-    // 7. Next Lecture Card
-    const nextLecture = schedule.find(s => s.status === 'Pending') || schedule.find(s => s.status === 'Upcoming');
-    const nextLectureSubject = document.getElementById('nextLectureSubject');
-    const nextLectureTime = document.getElementById('nextLectureTime');
-    const nextLectureClass = document.getElementById('nextLectureClass');
-    const nextLectureRoom = document.getElementById('nextLectureRoom');
-    const nextLectureBadge = document.getElementById('nextLectureBadge');
-
-    if (nextLecture) {
-        if (nextLectureSubject) nextLectureSubject.textContent = nextLecture.subject;
-        if (nextLectureTime) nextLectureTime.textContent = formatTimeRange(nextLecture.time);
-        if (nextLectureClass) nextLectureClass.textContent = nextLecture.className;
-        if (nextLectureRoom) nextLectureRoom.textContent = nextLecture.room;
-        if (nextLectureBadge) {
-            if (nextLecture.status === 'Pending') {
-                nextLectureBadge.className = 'status-badge status-inprogress';
-                nextLectureBadge.textContent = 'Pending';
-            } else {
-                nextLectureBadge.className = 'status-badge status-upcoming';
-                nextLectureBadge.textContent = 'Scheduled';
-            }
-        }
-    } else if (total > 0 && completed === total) {
-        if (nextLectureSubject) nextLectureSubject.textContent = 'All Lectures Completed';
-        if (nextLectureTime) nextLectureTime.textContent = 'No remaining classes today';
-        if (nextLectureClass) nextLectureClass.textContent = '—';
-        if (nextLectureRoom) nextLectureRoom.textContent = '—';
-        if (nextLectureBadge) {
-            nextLectureBadge.className = 'status-badge status-present';
-            nextLectureBadge.textContent = 'Done';
-        }
-    } else {
-        if (nextLectureSubject) nextLectureSubject.textContent = 'No Lectures Scheduled';
-        if (nextLectureTime) nextLectureTime.textContent = 'Click Edit to add classes';
-        if (nextLectureClass) nextLectureClass.textContent = '—';
-        if (nextLectureRoom) nextLectureRoom.textContent = '—';
-        if (nextLectureBadge) {
-            nextLectureBadge.className = 'status-badge status-upcoming';
-            nextLectureBadge.textContent = 'None';
-        }
-    }
-}
-
-function syncMockLecturesWithSchedule(schedule) {
-    if (!Array.isArray(schedule)) return;
-    mockLectures.length = 0;
-    schedule.forEach((item, idx) => {
-        let classId = 101;
-        if (item.className.includes("IT")) classId = 102;
-        else if (item.className.includes("Final")) classId = 103;
-
-        const code = item.subject.split(/\s+/).map(w => w[0]).join('').toUpperCase() || `LEC${idx + 1}`;
-        mockLectures.push({
-            id: item.id || `LEC_${idx + 1}`,
-            timetable_id: idx + 1,
-            class_id: classId,
-            code: code,
-            name: item.subject,
-            className: item.className,
-            time: item.time,
-            status: item.status
-        });
-    });
-}
-
-function initTodaySchedule() {
-    const schedule = getTodaySchedule();
-    renderTodaySchedule(schedule);
-    updateDashboardScheduleStats(schedule);
-    syncMockLecturesWithSchedule(schedule);
-}
-
-// --- Edit Schedule Modal Handlers ---
-function openEditScheduleModal() {
-    const schedule = getTodaySchedule();
-    const tbody = document.getElementById('editScheduleModalTbody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-    if (schedule.length === 0) {
-        tbody.innerHTML = `
-            <tr id="modalEmptyRow">
-                <td colspan="6" class="text-center py-3 text-muted">
-                    No classes in list. Click <strong>+ Add Class</strong> to insert a class.
-                </td>
-            </tr>
-        `;
-    } else {
-        schedule.forEach(item => {
-            renderModalRow(item);
-        });
-    }
-
-    updateModalSessionBadge();
-    const modalElement = document.getElementById('editScheduleModal');
-    const modalInstance = new bootstrap.Modal(modalElement);
-    modalInstance.show();
-}
-
-function renderModalRow(data = {}) {
-    const tbody = document.getElementById('editScheduleModalTbody');
-    const emptyRow = document.getElementById('modalEmptyRow');
-    if (emptyRow) emptyRow.remove();
-
-    const time = data.time || '10:00 AM';
-    const subject = data.subject || '';
-    const selectedClass = data.className || 'SY Computer A';
-    const room = data.room || 'Room 101';
-    const status = data.status || 'Upcoming';
-    const rowId = data.id || `sch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
-
-    // Build division options dropdown
-    let divisionOptions = DIVISION_OPTIONS.slice();
-    if (selectedClass && !divisionOptions.includes(selectedClass)) {
-        divisionOptions.push(selectedClass);
-    }
-    const divisionOptionsHtml = divisionOptions.map(div => `
-        <option value="${escapeHtml(div)}" ${div === selectedClass ? 'selected' : ''}>${escapeHtml(div)}</option>
-    `).join('');
-
-    // Build status options dropdown
-    const statusOptions = ['Completed', 'Pending', 'Upcoming'];
-    const statusOptionsHtml = statusOptions.map(st => `
-        <option value="${st}" ${st === status ? 'selected' : ''}>${st}</option>
-    `).join('');
-
-    const tr = document.createElement('tr');
-    tr.className = 'schedule-edit-row';
-    tr.setAttribute('data-row-id', rowId);
-    tr.innerHTML = `
-        <td>
-            <input type="text" class="form-control schedule-row-time" value="${escapeHtml(time)}" placeholder="09:00 AM">
-        </td>
-        <td>
-            <input type="text" class="form-control schedule-row-subject" value="${escapeHtml(subject)}" placeholder="e.g. Operating Systems">
-        </td>
-        <td>
-            <select class="form-select schedule-row-class">
-                ${divisionOptionsHtml}
-            </select>
-        </td>
-        <td>
-            <input type="text" class="form-control schedule-row-room" value="${escapeHtml(room)}" placeholder="e.g. Room 204">
-        </td>
-        <td>
-            <select class="form-select schedule-row-status">
-                ${statusOptionsHtml}
-            </select>
-        </td>
-        <td class="text-center">
-            <button type="button" class="btn-schedule-delete" title="Delete class" onclick="removeScheduleModalRow(this)">
-                <i class="fa-solid fa-trash-can"></i>
-            </button>
-        </td>
-    `;
-    tbody.appendChild(tr);
-}
-
-function addScheduleModalRow() {
-    const existingRows = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row');
-    let nextTime = '04:30 PM';
-    if (existingRows.length > 0) {
-        const lastTimeInput = existingRows[existingRows.length - 1].querySelector('.schedule-row-time');
-        if (lastTimeInput && lastTimeInput.value) {
-            nextTime = formatNextLectureTime(lastTimeInput.value);
-        }
-    }
-
-    renderModalRow({
-        time: nextTime,
-        subject: '',
-        className: 'SY Computer A',
-        room: 'Room 101',
-        status: 'Upcoming'
-    });
-
-    updateModalSessionBadge();
-
-    const rows = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row');
-    if (rows.length > 0) {
-        const newRowSubjectInput = rows[rows.length - 1].querySelector('.schedule-row-subject');
-        if (newRowSubjectInput) newRowSubjectInput.focus();
-    }
-}
-
-function removeScheduleModalRow(btn) {
-    const row = btn.closest('tr');
-    if (row) {
-        row.remove();
-        updateModalSessionBadge();
-        const remainingRows = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row');
-        if (remainingRows.length === 0) {
-            const tbody = document.getElementById('editScheduleModalTbody');
-            tbody.innerHTML = `
-                <tr id="modalEmptyRow">
-                    <td colspan="6" class="text-center py-3 text-muted">
-                        No classes in list. Click <strong>+ Add Class</strong> to insert a class.
-                    </td>
-                </tr>
-            `;
-        }
-    }
-}
-
-function updateModalSessionBadge() {
-    const badge = document.getElementById('modalSessionBadge');
-    if (!badge) return;
-    const count = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row').length;
-    badge.textContent = `${count} ${count === 1 ? 'Session' : 'Sessions'}`;
-}
-
-function saveScheduleChanges() {
-    const rows = document.querySelectorAll('#editScheduleModalTbody tr.schedule-edit-row');
-    const updatedSchedule = [];
-
-    for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const timeInput = row.querySelector('.schedule-row-time');
-        const subjectInput = row.querySelector('.schedule-row-subject');
-        const classSelect = row.querySelector('.schedule-row-class');
-        const roomInput = row.querySelector('.schedule-row-room');
-        const statusSelect = row.querySelector('.schedule-row-status');
-        const rowId = row.getAttribute('data-row-id') || `sch_${i + 1}`;
-
-        const time = timeInput ? timeInput.value.trim() : '';
-        const subject = subjectInput ? subjectInput.value.trim() : '';
-        const className = classSelect ? classSelect.value : 'SY Computer A';
-        const room = roomInput ? roomInput.value.trim() : 'Room 101';
-        const status = statusSelect ? statusSelect.value : 'Upcoming';
-
-        if (!time) {
-            showToast(`Please enter a valid time for row #${i + 1}.`, 'error');
-            if (timeInput) timeInput.focus();
-            return;
-        }
-
-        if (!subject) {
-            showToast(`Please enter a subject name for row #${i + 1}.`, 'error');
-            if (subjectInput) subjectInput.focus();
-            return;
-        }
-
-        updatedSchedule.push({
-            id: rowId,
-            time: time,
-            subject: subject,
-            className: className,
-            room: room || 'Room 101',
-            status: status
-        });
-    }
-
-    // Persist to localStorage for current session
-    localStorage.setItem(STORAGE_KEY_SCHEDULE, JSON.stringify(updatedSchedule));
-
-    // Update Today's Schedule Table immediately
-    renderTodaySchedule(updatedSchedule);
-
-    // Update all dashboard cards, statistics, and Next Lecture card
-    updateDashboardScheduleStats(updatedSchedule);
-
-    // Sync mock lectures list
-    syncMockLecturesWithSchedule(updatedSchedule);
-
-    // Close modal
-    const modalElement = document.getElementById('editScheduleModal');
-    const modalInstance = bootstrap.Modal.getInstance(modalElement);
-    if (modalInstance) {
-        modalInstance.hide();
-    }
-
-    showToast("Today's schedule updated successfully!", "success");
-}
-
-// --- Client-side Datasets (No Database Required) ---
-const mockLectures = [
-    { id: "DS", timetable_id: 1, class_id: 101, code: "DS", name: "Data Structures", className: "SY Computer A", time: "09:00 AM" },
-    { id: "OS", timetable_id: 2, class_id: 102, code: "OS", name: "Operating Systems", className: "TY IT B", time: "11:15 AM" },
-    { id: "SE", timetable_id: 3, class_id: 101, code: "SE", name: "Software Engineering", className: "SY Computer A", time: "02:00 PM" },
-    { id: "ML", timetable_id: 4, class_id: 103, code: "ML", name: "Machine Learning", className: "Final Year CS", time: "03:45 PM" }
-];
-
-const mockStudentsByClass = {
-    101: [ // SY Computer A
-        { student_id: 101, roll_number: "101", full_name: "Rahul Sharma" },
-        { student_id: 102, roll_number: "102", full_name: "Amit Patil" },
-        { student_id: 103, roll_number: "103", full_name: "Sneha Kulkarni" },
-        { student_id: 104, roll_number: "104", full_name: "Vikram Singh" },
-        { student_id: 105, roll_number: "105", full_name: "Priya Joshi" },
-        { student_id: 106, roll_number: "106", full_name: "Rohan Mehta" },
-        { student_id: 107, roll_number: "107", full_name: "Neha Shinde" }
-    ],
-    102: [ // TY IT B
-        { student_id: 201, roll_number: "201", full_name: "Aarav Gupta" },
-        { student_id: 202, roll_number: "202", full_name: "Ananya Deshmukh" },
-        { student_id: 203, roll_number: "203", full_name: "Siddharth Rao" },
-        { student_id: 204, roll_number: "204", full_name: "Tanvi Kadam" },
-        { student_id: 205, roll_number: "205", full_name: "Yash Pawar" }
-    ],
-    103: [ // Final Year CS
-        { student_id: 301, roll_number: "301", full_name: "Aditya Joshi" },
-        { student_id: 302, roll_number: "302", full_name: "Pooja Nair" },
-        { student_id: 303, roll_number: "303", full_name: "Ishaan Verma" },
-        { student_id: 304, roll_number: "304", full_name: "Diya Shah" },
-        { student_id: 305, roll_number: "305", full_name: "Sameer Khan" }
-    ]
-};
-
-function generateInitialAttendanceHistory() {
-    const saved = localStorage.getItem('smart_attendance_history');
-    if (saved) {
-        try { return JSON.parse(saved); } catch(e) {}
-    }
-    
-    // Rich default mock dataset matching standard academic schedule
-    const records = [
-        // Today - Data Structures
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Rahul Sharma", roll_number: "101", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Amit Patil", roll_number: "102", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Sneha Kulkarni", roll_number: "103", status: "absent" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Vikram Singh", roll_number: "104", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Priya Joshi", roll_number: "105", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Rohan Mehta", roll_number: "106", status: "absent" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "DS", subject_name: "Data Structures", student_name: "Neha Shinde", roll_number: "107", status: "present" },
-
-        // Today - Software Engineering
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Rahul Sharma", roll_number: "101", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Amit Patil", roll_number: "102", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Sneha Kulkarni", roll_number: "103", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Vikram Singh", roll_number: "104", status: "absent" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Priya Joshi", roll_number: "105", status: "present" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Rohan Mehta", roll_number: "106", status: "late" },
-        { attendance_date: todayStr, class_name: "SY Computer A", subject_code: "SE", subject_name: "Software Engineering", student_name: "Neha Shinde", roll_number: "107", status: "present" },
-
-        // Today - Operating Systems
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Aarav Gupta", roll_number: "201", status: "present" },
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Ananya Deshmukh", roll_number: "202", status: "present" },
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Siddharth Rao", roll_number: "203", status: "absent" },
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Tanvi Kadam", roll_number: "204", status: "present" },
-        { attendance_date: todayStr, class_name: "TY IT B", subject_code: "OS", subject_name: "Operating Systems", student_name: "Yash Pawar", roll_number: "205", status: "present" },
-
-        // Today - Machine Learning
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Aditya Joshi", roll_number: "301", status: "present" },
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Pooja Nair", roll_number: "302", status: "present" },
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Ishaan Verma", roll_number: "303", status: "late" },
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Diya Shah", roll_number: "304", status: "present" },
-        { attendance_date: todayStr, class_name: "Final Year CS", subject_code: "ML", subject_name: "Machine Learning", student_name: "Sameer Khan", roll_number: "305", status: "absent" }
-    ];
-
-    localStorage.setItem('smart_attendance_history', JSON.stringify(records));
-    return records;
-}
-
-let attendanceHistoryStore = generateInitialAttendanceHistory();
-
 // --- Navigation Item Click & Header Update Simulation ---
 function simulateNav(moduleName) {
     const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
@@ -746,22 +178,105 @@ async function loadDashboardStats() {
             statCards[5].querySelector('.stat-number').textContent = `${stats.pending_attendance} Classes`;
         }
 
-        // Fetch today's timetable and update schedule table
+        // Fetch today's timetable, recent attendance, and whatsapp logs
         loadTodaySchedule();
         loadRecentAttendance();
+        loadWhatsappLogs();
     } catch (e) {
         console.error("Dashboard stats error:", e);
     }
+}
+
+async function loadWhatsappLogs() {
+    const container = document.getElementById('parentNotificationStatusList');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="spinner-loading-wrapper py-3">
+            <i class="fa-solid fa-circle-notch spinner-loading-icon fs-5"></i>
+            <span style="font-size: 11px;">Fetching WhatsApp notification logs...</span>
+        </div>
+    `;
+
+    try {
+        const res = await fetch('/api/whatsapp/logs');
+        if (!res.ok) return;
+        const logs = await res.json();
+
+        container.innerHTML = '';
+        if (!logs || logs.length === 0) {
+            container.innerHTML = `
+                <div class="p-3 text-center text-muted" style="font-size: 12px;">
+                    <i class="fa-brands fa-whatsapp mb-1 d-block fs-5" style="opacity: 0.5;"></i>
+                    No parent notification logs yet.
+                </div>
+            `;
+            return;
+        }
+
+        logs.slice(0, 5).forEach(log => {
+            const isSent = log.status === 'sent';
+            const iconClass = isSent ? 'fa-check' : 'fa-exclamation';
+            const indicatorClass = isSent ? 'success' : 'pending';
+            const badgeClass = isSent ? 'status-present' : 'status-absent';
+            const badgeText = isSent ? 'Sent' : (log.error_message ? 'Failed' : 'Pending');
+            const timeStr = log.created_at ? log.created_at.split(' ')[1] || log.created_at : '';
+
+            container.innerHTML += `
+                <div class="notification-status-item">
+                    <div class="notification-left">
+                        <div class="notification-indicator ${indicatorClass}">
+                            <i class="fa-solid ${iconClass}"></i>
+                        </div>
+                        <div class="notification-details">
+                            <span class="notification-student">${log.student_name}</span>
+                            <span class="notification-meta" title="${log.error_message || log.message}">${log.phone_number} &bull; ${timeStr}</span>
+                        </div>
+                    </div>
+                    <span class="status-badge ${badgeClass}">${badgeText}</span>
+                </div>
+            `;
+        });
+    } catch (e) {
+        console.error("Error loading whatsapp logs:", e);
+    }
+}
+
+function selectAndMarkLecture(timetableId) {
+    simulateNav('Mark Attendance');
+    setTimeout(() => {
+        const select = document.getElementById('markAttLecture');
+        if (select) {
+            select.value = timetableId;
+            fetchStudentsForAttendance();
+        }
+    }, 150);
 }
 
 async function loadTodaySchedule() {
     const tbody = document.getElementById('todaysScheduleTableBody');
     if (!tbody) return;
 
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="py-3">
+                <div class="d-flex flex-column gap-2">
+                    <div class="skeleton-box skeleton-text-md"></div>
+                    <div class="skeleton-box skeleton-text-md" style="width: 85%;"></div>
+                </div>
+            </td>
+        </tr>
+    `;
+
     try {
         const res = await fetch('/api/timetable/today');
         if (!res.ok) return;
         const timetable = await res.json();
+
+        const sessionBadge = document.getElementById('scheduleSessionBadge');
+        if (sessionBadge) {
+            sessionBadge.textContent = `${timetable.length} ${timetable.length === 1 ? 'Session' : 'Sessions'}`;
+        }
 
         tbody.innerHTML = '';
         if (!timetable || timetable.length === 0) {
@@ -779,8 +294,20 @@ async function loadTodaySchedule() {
 
         timetable.forEach(t => {
             let badgeClass = 'status-upcoming';
-            if (t.status === 'Completed') badgeClass = 'status-present';
-            else if (t.status === 'In Progress') badgeClass = 'status-inprogress';
+            let badgeContent = t.status;
+            let actionBtnText = 'Mark';
+
+            if (t.is_marked || t.status === 'Marked') {
+                badgeClass = 'status-present';
+                badgeContent = '<i class="fa-solid fa-circle-check me-1"></i> Marked';
+                actionBtnText = 'View / Edit';
+            } else if (t.status === 'Completed') {
+                badgeClass = 'status-late';
+                badgeContent = '<i class="fa-solid fa-clock me-1"></i> Completed';
+            } else if (t.status === 'In Progress') {
+                badgeClass = 'status-inprogress';
+                badgeContent = '<i class="fa-solid fa-spinner fa-spin me-1"></i> In Progress';
+            }
 
             tbody.innerHTML += `
                 <tr>
@@ -788,10 +315,10 @@ async function loadTodaySchedule() {
                     <td class="fw-medium">${t.subject_name}</td>
                     <td>${t.class_name}</td>
                     <td>${t.room_number || 'Room 101'}</td>
-                    <td><span class="status-badge ${badgeClass}">${t.status}</span></td>
+                    <td><span class="status-badge ${badgeClass}">${badgeContent}</span></td>
                     <td class="text-end">
-                        <button class="btn-primary-custom" onclick="simulateNav('Mark Attendance')">
-                            <i class="fa-solid fa-clipboard-user"></i> Mark
+                        <button class="${t.is_marked ? 'btn-outline-custom' : 'btn-primary-custom'}" onclick="selectAndMarkLecture(${t.timetable_id})">
+                            <i class="fa-solid ${t.is_marked ? 'fa-pen-to-square' : 'fa-clipboard-user'} me-1"></i> ${actionBtnText}
                         </button>
                     </td>
                 </tr>
@@ -828,6 +355,14 @@ function updateNextLectureWidget(lecture) {
 async function loadRecentAttendance() {
     const tbody = document.getElementById('recentAttendanceTableBody');
     if (!tbody) return;
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="5" class="py-3">
+                <div class="skeleton-box skeleton-text-md"></div>
+            </td>
+        </tr>
+    `;
 
     try {
         const res = await fetch('/api/attendance');
@@ -870,6 +405,17 @@ async function loadMyClasses() {
     const tbody = document.querySelector('#myClassesTable tbody');
     const classSelect = document.getElementById('addStudentClassSelect');
     if (!tbody) return;
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="4" class="py-4">
+                <div class="d-flex flex-column gap-2">
+                    <div class="skeleton-box skeleton-text-md"></div>
+                    <div class="skeleton-box skeleton-text-md" style="width: 70%;"></div>
+                </div>
+            </td>
+        </tr>
+    `;
 
     try {
         const res = await fetch('/api/classes');
@@ -939,7 +485,8 @@ async function loadAttendanceForm() {
         }
 
         timetables.forEach(t => {
-            select.innerHTML += `<option value="${t.timetable_id}" data-classid="${t.class_id}">${t.start_time_str || t.start_time} - ${t.subject_name} (${t.class_name})</option>`;
+            const markedTag = t.is_marked ? ' [✅ Attendance Marked]' : '';
+            select.innerHTML += `<option value="${t.timetable_id}" data-classid="${t.class_id}">${t.start_time_str || t.start_time} - ${t.subject_name} (${t.class_name})${markedTag}</option>`;
         });
     } catch (e) {
         select.innerHTML = '<option value="">Error loading lectures</option>';
@@ -948,7 +495,9 @@ async function loadAttendanceForm() {
 
 async function fetchStudentsForAttendance() {
     const select = document.getElementById('markAttLecture');
-    const dateStr = document.getElementById('markAttDate').value;
+    const dateInput = document.getElementById('markAttDate');
+    const dateStr = dateInput ? dateInput.value : todayStr;
+
     if (!select || !select.value || !dateStr) {
         showToast('Please select date and lecture.', 'error');
         return;
@@ -961,8 +510,25 @@ async function fetchStudentsForAttendance() {
 
     window.currentAttLecture = lecture;
 
+    const container = document.getElementById('markAttStudentsContainer');
+    const tbody = document.querySelector('#markAttendanceTable tbody');
+    
+    if (container) container.style.display = 'block';
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="3" class="py-4 text-center">
+                    <div class="spinner-loading-wrapper py-2">
+                        <i class="fa-solid fa-circle-notch spinner-loading-icon fs-4"></i>
+                        <span style="font-size: 12px; font-weight: 500;">Loading student roll call list...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
     try {
-        const res = await fetch(`/api/classes/${lecture.class_id}/students`);
+        const res = await fetch(`/api/classes/${lecture.class_id}/students?timetable_id=${timetableId}&date=${dateStr}`);
         if (!res.ok) {
             showToast('Error loading students.', 'error');
             return;
@@ -976,8 +542,41 @@ async function fetchStudentsForAttendance() {
             countLabel.textContent = `Roll Call for ${lecture.subject_name} (${lecture.class_name}) - ${students.length} Students`;
         }
 
-        document.getElementById('markAttStudentsContainer').style.display = 'block';
-        const tbody = document.querySelector('#markAttendanceTable tbody');
+        // Check if attendance is already marked for today
+        const isAlreadyMarked = students.some(s => s.attendance_status !== null && s.attendance_status !== undefined);
+        
+        let noticeBanner = document.getElementById('attendanceMarkedNotice');
+        
+        if (!noticeBanner && container) {
+            noticeBanner = document.createElement('div');
+            noticeBanner.id = 'attendanceMarkedNotice';
+            container.insertBefore(noticeBanner, container.firstChild);
+        }
+
+        if (noticeBanner) {
+            if (isAlreadyMarked) {
+                noticeBanner.className = 'alert alert-success d-flex align-items-center gap-2 mb-3 py-2 px-3 shadow-sm rounded-3';
+                noticeBanner.style.borderLeft = '5px solid #10b981';
+                noticeBanner.innerHTML = `
+                    <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                    <div style="font-size: 13px;">
+                        <strong class="text-success">Attendance is ALREADY MARKED for today (${dateStr})!</strong>
+                        <span class="d-block text-secondary">Below are the recorded statuses. Modifying and clicking Submit will update existing records.</span>
+                    </div>
+                `;
+            } else {
+                noticeBanner.className = 'alert alert-info d-flex align-items-center gap-2 mb-3 py-2 px-3 shadow-sm rounded-3';
+                noticeBanner.style.borderLeft = '5px solid #0284c7';
+                noticeBanner.innerHTML = `
+                    <i class="fa-solid fa-circle-info text-info fs-5"></i>
+                    <div style="font-size: 13px;">
+                        <strong class="text-info">Attendance NOT marked yet for today (${dateStr}).</strong>
+                        <span class="d-block text-secondary">Select status for each student and click "Submit Attendance Record".</span>
+                    </div>
+                `;
+            }
+        }
+
         if (!tbody) return;
 
         tbody.innerHTML = '';
@@ -997,19 +596,24 @@ async function fetchStudentsForAttendance() {
         }
 
         students.forEach(s => {
+            const currentStatus = s.attendance_status || 'present';
+            const isPresent = currentStatus === 'present' ? 'active' : '';
+            const isAbsent = currentStatus === 'absent' ? 'active' : '';
+            const isLate = currentStatus === 'late' ? 'active' : '';
+
             tbody.innerHTML += `
                 <tr>
                     <td class="fw-semibold text-secondary" style="font-size: 13px;">${s.roll_number}</td>
                     <td class="fw-medium">${s.full_name}</td>
                     <td>
-                        <div class="status-btn-group" data-studentid="${s.student_id}" data-studentname="${s.full_name}" data-roll="${s.roll_number}" data-status="present">
-                            <button type="button" class="status-btn btn-present active" onclick="setStudentStatus(this, 'present')">
+                        <div class="status-btn-group" data-studentid="${s.student_id}" data-studentname="${s.full_name}" data-roll="${s.roll_number}" data-status="${currentStatus}">
+                            <button type="button" class="status-btn btn-present ${isPresent}" onclick="setStudentStatus(this, 'present')">
                                 <i class="fa-solid fa-circle-check"></i> Present
                             </button>
-                            <button type="button" class="status-btn btn-absent" onclick="setStudentStatus(this, 'absent')">
+                            <button type="button" class="status-btn btn-absent ${isAbsent}" onclick="setStudentStatus(this, 'absent')">
                                 <i class="fa-solid fa-circle-xmark"></i> Absent
                             </button>
-                            <button type="button" class="status-btn btn-late" onclick="setStudentStatus(this, 'late')">
+                            <button type="button" class="status-btn btn-late ${isLate}" onclick="setStudentStatus(this, 'late')">
                                 <i class="fa-solid fa-clock"></i> Late
                             </button>
                         </div>
@@ -1040,7 +644,7 @@ function markAll(status) {
     showToast(`Marked all students as **${status.toUpperCase()}**`, 'info');
 }
 
-async function submitAttendance() {
+async function submitAttendance(btnEl) {
     const select = document.getElementById('markAttLecture');
     const dateStr = document.getElementById('markAttDate').value;
     const lecture = window.currentAttLecture;
@@ -1048,6 +652,15 @@ async function submitAttendance() {
 
     const groups = document.querySelectorAll('.status-btn-group');
     if (groups.length === 0) return;
+
+    const submitBtn = btnEl || document.querySelector('#markAttStudentsContainer button[onclick*="submitAttendance"]');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '<i class="fa-solid fa-paper-plane me-1"></i> Submit Attendance Record';
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('btn-submitting');
+        submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin me-2"></i> Submitting & Sending WhatsApp Alerts...';
+    }
 
     const attendanceRecords = [];
     groups.forEach(group => {
@@ -1070,13 +683,40 @@ async function submitAttendance() {
         const data = await res.json();
 
         if (res.ok) {
-            showToast(`Attendance recorded successfully for **${lecture.subject_name}**!`, 'success');
+            showToast(`✅ Attendance recorded & marked for **${lecture.subject_name}**!`, 'success');
+            
+            // Show WhatsApp result toasts
+            if (data.details) {
+                if (data.details.whatsapp_sent > 0) {
+                    setTimeout(() => {
+                        showToast(`📱 WhatsApp alert automatically sent to ${data.details.whatsapp_sent} parent(s)!`, 'success');
+                    }, 800);
+                }
+                if (data.details.whatsapp_errors && data.details.whatsapp_errors.length > 0) {
+                    data.details.whatsapp_errors.forEach((err, i) => {
+                        setTimeout(() => {
+                            showToast(`⚠️ WhatsApp alert error for ${err.student}: ${err.error}`, 'error');
+                        }, 1200 + (i * 800));
+                    });
+                }
+            }
+            
             loadDashboardStats();
+            loadAttendanceForm();
+            setTimeout(() => {
+                fetchStudentsForAttendance();
+            }, 300);
         } else {
             showToast(data.error || 'Failed to submit attendance.', 'error');
         }
     } catch (e) {
         showToast('Error submitting attendance.', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('btn-submitting');
+            submitBtn.innerHTML = originalBtnHtml;
+        }
     }
 }
 
@@ -1084,6 +724,17 @@ async function loadAttendanceHistory() {
     const dateInput = document.getElementById('historyDateInput');
     if (dateInput && !dateInput.value) {
         dateInput.value = todayStr;
+    }
+
+    const tbody = document.querySelector('#attendanceHistoryTableData tbody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-3">
+                    <div class="skeleton-box skeleton-text-md"></div>
+                </td>
+            </tr>
+        `;
     }
 
     try {
@@ -1247,6 +898,251 @@ async function submitAddStudent(e) {
 function viewStudentDetails(studentName, rollNo) {
     showToast(`Viewing student profile for **${studentName}** (Roll: ${rollNo})`, 'info');
 }
+
+// ============================================================
+// Edit Today's Classes (Schedule) Modal Functions
+// ============================================================
+
+/**
+ * Opens the Edit Today's Classes modal and pre-populates it
+ * with the teacher's today timetable (from permanent classes).
+ */
+async function openEditScheduleModal() {
+    const modalEl = document.getElementById('editScheduleModal');
+    if (!modalEl) return;
+
+    // Pre-fetch teacher's permanent subjects for the "Add Class" dropdown
+    await loadTeacherSubjectsForSchedule();
+
+    // Populate the modal table with existing today's sessions
+    const tbody = document.getElementById('editScheduleModalTbody');
+    const badge = document.getElementById('modalSessionBadge');
+
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="py-3 text-center">
+                    <div class="spinner-loading-wrapper py-2">
+                        <i class="fa-solid fa-circle-notch spinner-loading-icon fs-5"></i>
+                        <span style="font-size: 12px;">Loading today's schedule...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    try {
+        const res = await fetch('/api/timetable/today');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const timetable = await res.json();
+
+        if (badge) badge.textContent = `${timetable.length} Session${timetable.length !== 1 ? 's' : ''}`;
+
+        tbody.innerHTML = '';
+        if (!timetable || timetable.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted" style="font-size: 12px;">
+                        <i class="fa-solid fa-calendar-xmark d-block mb-2 fs-4" style="opacity:0.4;"></i>
+                        No classes scheduled for today. Use "Add Class" below to add one.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        timetable.forEach(t => {
+            const statusBadge = t.is_marked
+                ? `<span class="status-badge status-present"><i class="fa-solid fa-circle-check me-1"></i>Marked</span>`
+                : `<span class="status-badge status-upcoming">${t.status || 'Scheduled'}</span>`;
+
+            tbody.innerHTML += `
+                <tr data-timetable-id="${t.timetable_id}" class="existing-schedule-row">
+                    <td style="font-size: 13px;" class="fw-semibold">${t.start_time_str || t.start_time} – ${t.end_time_str || t.end_time}</td>
+                    <td style="font-size: 13px;" class="fw-medium">${t.subject_name}</td>
+                    <td style="font-size: 13px;">${t.class_name}</td>
+                    <td style="font-size: 13px;">${t.room_number || 'Room 101'}</td>
+                    <td>${statusBadge}</td>
+                    <td class="text-center">
+                        <span class="text-muted" style="font-size: 11px;" title="Permanent class — edit via Timetable settings">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+
+    } catch (e) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center py-3 text-muted">Error loading schedule.</td></tr>`;
+    }
+}
+
+/**
+ * Fetches teacher's permanent classes/subjects for the "Add Class" row dropdown.
+ */
+let _teacherSubjectsCache = null;
+async function loadTeacherSubjectsForSchedule() {
+    if (_teacherSubjectsCache) return _teacherSubjectsCache;
+    try {
+        const res = await fetch('/api/classes');
+        if (!res.ok) return [];
+        const classes = await res.json();
+        _teacherSubjectsCache = classes || [];
+        return _teacherSubjectsCache;
+    } catch (e) {
+        return [];
+    }
+}
+
+/**
+ * Adds a new editable row to the Edit Schedule modal table.
+ * The teacher can set time, pick a class from their permanent classes, and set a room.
+ */
+async function addScheduleModalRow() {
+    const tbody = document.getElementById('editScheduleModalTbody');
+    if (!tbody) return;
+
+    // Remove "no classes" placeholder row if present
+    const placeholder = tbody.querySelector('td[colspan="6"]');
+    if (placeholder) placeholder.closest('tr').remove();
+
+    const subjects = await loadTeacherSubjectsForSchedule();
+
+    let subjectOptions = `<option value="">Select Class & Subject...</option>`;
+    subjects.forEach(s => {
+        subjectOptions += `<option value="${s.teacher_subject_id}" data-classname="${s.section_name}">${s.section_name} — ${s.subject_name}</option>`;
+    });
+
+    const newRow = document.createElement('tr');
+    newRow.className = 'new-schedule-row';
+    newRow.setAttribute('data-new', 'true');
+    newRow.innerHTML = `
+        <td>
+            <div class="d-flex gap-1 align-items-center">
+                <input type="time" class="form-control form-control-sm sched-start" value="09:00" style="width:100px; font-size:12px;">
+                <span class="text-muted" style="font-size:11px;">–</span>
+                <input type="time" class="form-control form-control-sm sched-end" value="10:00" style="width:100px; font-size:12px;">
+            </div>
+        </td>
+        <td colspan="2">
+            <select class="form-select form-select-sm sched-subject" style="font-size:12px; min-width:220px;">
+                ${subjectOptions}
+            </select>
+        </td>
+        <td>
+            <input type="text" class="form-control form-control-sm sched-room" placeholder="e.g. Room 102" value="Room 101" style="font-size:12px;">
+        </td>
+        <td>
+            <span class="status-badge status-upcoming" style="font-size:10px;">New</span>
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm" style="color:var(--absent);background:none;border:none;padding:2px 6px;font-size:1rem;" title="Remove row" onclick="this.closest('tr').remove()">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(newRow);
+}
+
+/**
+ * Saves all newly added schedule rows to the backend.
+ * Existing/permanent rows are locked (skip them).
+ */
+async function saveScheduleChanges() {
+    const tbody = document.getElementById('editScheduleModalTbody');
+    if (!tbody) return;
+
+    const newRows = tbody.querySelectorAll('tr[data-new="true"]');
+    if (newRows.length === 0) {
+        showToast('No new classes to save. Use "Add Class" to add new sessions.', 'info');
+        return;
+    }
+
+    const today = new Date();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const todayName = dayNames[today.getDay()];
+
+    const toCreate = [];
+    let hasError = false;
+
+    newRows.forEach(row => {
+        const startInput = row.querySelector('.sched-start');
+        const endInput = row.querySelector('.sched-end');
+        const subjectSelect = row.querySelector('.sched-subject');
+        const roomInput = row.querySelector('.sched-room');
+
+        const teacherSubjectId = subjectSelect ? subjectSelect.value : '';
+        const startTime = startInput ? startInput.value : '';
+        const endTime = endInput ? endInput.value : '';
+        const room = roomInput ? roomInput.value.trim() : 'Room 101';
+
+        if (!teacherSubjectId || !startTime || !endTime) {
+            row.style.outline = '2px solid var(--absent)';
+            hasError = true;
+            return;
+        }
+
+        if (startTime >= endTime) {
+            showToast('End time must be after start time.', 'error');
+            hasError = true;
+            return;
+        }
+
+        row.style.outline = '';
+        toCreate.push({ teacher_subject_id: parseInt(teacherSubjectId), day_of_week: todayName, start_time: startTime + ':00', end_time: endTime + ':00', room_number: room });
+    });
+
+    if (hasError) {
+        showToast('Please fill in all required fields for new rows.', 'error');
+        return;
+    }
+
+    // Save each new row
+    const saveBtn = document.querySelector('#editScheduleModal .modal-footer .btn-primary-custom');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin me-1"></i> Saving...'; }
+
+    let savedCount = 0;
+    let errorCount = 0;
+
+    for (const entry of toCreate) {
+        try {
+            const res = await fetch('/api/timetable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(entry)
+            });
+            if (res.ok) {
+                savedCount++;
+            } else {
+                const data = await res.json();
+                showToast(`Error: ${data.error || 'Failed to save a session.'}`, 'error');
+                errorCount++;
+            }
+        } catch (e) {
+            errorCount++;
+        }
+    }
+
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Save Changes'; }
+
+    if (savedCount > 0) {
+        showToast(`✅ ${savedCount} new class session${savedCount > 1 ? 's' : ''} added to today's schedule!`, 'success');
+        // Close the modal and reload
+        const modalEl = document.getElementById('editScheduleModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+        // Refresh dashboard schedule
+        loadTodaySchedule();
+        loadDashboardStats();
+        // Invalidate cache so next open fetches fresh data
+        _teacherSubjectsCache = null;
+    }
+}
+
+// ============================================================
 
 function simulateLogout() {
     if (confirm("Are you sure you want to logout of Smart Attendance ERP?")) {

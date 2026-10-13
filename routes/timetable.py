@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, session
+from flask import Blueprint, jsonify, session, request
 from models.db import execute_query
 from datetime import datetime
 
@@ -32,6 +32,59 @@ def get_timetable():
         
     return jsonify(tt), 200
 
+
+@timetable_bp.route('/timetable', methods=['POST'])
+def create_timetable():
+    """
+    Create a new timetable slot.
+    Called by the Edit Today's Classes modal when the teacher adds a new session.
+    Body: { teacher_subject_id, day_of_week, start_time, end_time, room_number }
+    """
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    teacher_id = session.get('teacher_id')
+    if not teacher_id:
+        return jsonify({'error': 'Teacher session not found'}), 403
+
+    data = request.json or {}
+    teacher_subject_id = data.get('teacher_subject_id')
+    day_of_week = data.get('day_of_week', '').strip()
+    start_time = data.get('start_time', '').strip()
+    end_time = data.get('end_time', '').strip()
+    room_number = data.get('room_number', 'Room 101').strip()
+
+    if not teacher_subject_id or not day_of_week or not start_time or not end_time:
+        return jsonify({'error': 'teacher_subject_id, day_of_week, start_time and end_time are required'}), 400
+
+    # Validate allowed days
+    allowed_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    if day_of_week not in allowed_days:
+        return jsonify({'error': f'day_of_week must be one of: {", ".join(allowed_days)}'}), 400
+
+    # Verify the teacher_subject_id belongs to this teacher
+    ownership = execute_query(
+        "SELECT teacher_subject_id FROM teacher_subjects WHERE teacher_subject_id = %s AND teacher_id = %s",
+        (teacher_subject_id, teacher_id),
+        fetchone=True
+    )
+    if not ownership:
+        return jsonify({'error': 'You do not have access to this class/subject.'}), 403
+
+    try:
+        new_id = execute_query(
+            """
+            INSERT INTO timetables (teacher_subject_id, day_of_week, start_time, end_time, room_number)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (teacher_subject_id, day_of_week, start_time, end_time, room_number),
+            commit=True
+        )
+        return jsonify({'message': 'Timetable slot created successfully', 'timetable_id': new_id}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @timetable_bp.route('/timetable/today', methods=['GET'])
 def get_today_timetable():
     if 'user_id' not in session:
@@ -41,6 +94,8 @@ def get_today_timetable():
     if not teacher_id:
         return jsonify([]), 200
 
+    today_date = datetime.now().date()
+    today_str = today_date.strftime('%Y-%m-%d')
     today_name = datetime.now().strftime('%A')
     
     query = """
@@ -57,6 +112,16 @@ def get_today_timetable():
     
     now = datetime.now().time()
     for item in tt:
+        # Check if attendance is already marked for today
+        att_check = execute_query(
+            "SELECT COUNT(*) as count FROM attendance WHERE timetable_id = %s AND attendance_date = %s",
+            (item['timetable_id'], today_str),
+            fetchone=True
+        )
+        is_marked = bool(att_check and att_check['count'] > 0)
+        item['is_marked'] = is_marked
+        item['marked_count'] = att_check['count'] if att_check else 0
+
         # Convert timedelta from db to time object (mysql returns timedelta for TIME)
         if hasattr(item['start_time'], 'total_seconds'):
             start_t = (datetime.min + item['start_time']).time()
@@ -70,7 +135,9 @@ def get_today_timetable():
         item['start_time'] = str(item['start_time'])
         item['end_time'] = str(item['end_time'])
         
-        if now > end_t:
+        if is_marked:
+            item['status'] = 'Marked'
+        elif now > end_t:
             item['status'] = 'Completed'
         elif now < start_t:
             item['status'] = 'Scheduled'
@@ -78,4 +145,5 @@ def get_today_timetable():
             item['status'] = 'In Progress'
             
     return jsonify(tt), 200
+
 

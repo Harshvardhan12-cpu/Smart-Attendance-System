@@ -99,10 +99,15 @@ def login():
         log_login_attempt(email or 'unknown', 'failed', failure_reason='Missing email or password')
         return jsonify({'error': 'Email and password are required'}), 400
 
-    user = execute_query(
-        "SELECT * FROM users WHERE email = %s AND is_active = 1", 
-        (email,), fetchone=True
-    )
+    try:
+        user = execute_query(
+            "SELECT * FROM users WHERE email = %s AND is_active = 1", 
+            (email,), fetchone=True
+        )
+    except Exception as e:
+        return jsonify({
+            'error': f'MySQL Connection Error: Unable to authenticate. Please verify that MySQL server is running and accessible. ({str(e)})'
+        }), 503
 
     if not user:
         log_login_attempt(email, 'failed', failure_reason='Account not found or inactive')
@@ -115,16 +120,20 @@ def login():
         
         teacher_id = None
         if user['role'] == 'teacher':
-            teacher = execute_query("SELECT teacher_id FROM teachers WHERE user_id = %s", (user['user_id'],), fetchone=True)
-            if teacher:
-                teacher_id = teacher['teacher_id']
-            else:
-                emp_id = f"EMP{user['user_id']:04d}"
-                teacher_id = execute_query(
-                    "INSERT INTO teachers (user_id, employee_id, full_name, email) VALUES (%s, %s, %s, %s)",
-                    (user['user_id'], emp_id, user['full_name'], user.get('email')),
-                    commit=True
-                )
+            try:
+                teacher = execute_query("SELECT teacher_id FROM teachers WHERE user_id = %s", (user['user_id'],), fetchone=True)
+                if teacher:
+                    teacher_id = teacher['teacher_id']
+                else:
+                    emp_id = f"EMP{user['user_id']:04d}"
+                    teacher_id = execute_query(
+                        "INSERT INTO teachers (user_id, employee_id, full_name, email) VALUES (%s, %s, %s, %s)",
+                        (user['user_id'], emp_id, user['full_name'], user.get('email')),
+                        commit=True
+                    )
+            except Exception as e:
+                return jsonify({'error': f'Database error while retrieving profile details: {str(e)}'}), 500
+
             session['teacher_id'] = teacher_id
 
         # Log successful authentication attempt

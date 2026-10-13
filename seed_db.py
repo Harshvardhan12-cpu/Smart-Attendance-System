@@ -150,16 +150,10 @@ def seed_database():
             """, (ts_id, day, start, end, room))
             timetable_ids.append(cursor.lastrowid)
 
-        # Insert Students (e.g. SY Computer A)
+        # Insert Real Student for Harshvardhan Pate (Varad Rege)
         student_pass = hash_password('student123')
         sy_a_students = [
-            ('101', 'EN2022001', 'Rahul Sharma', 'rahul@college.edu', 'Mr. Ramesh Sharma', '9876543210'),
-            ('102', 'EN2022002', 'Amit Patil', 'amit@college.edu', 'Mr. Sunil Patil', '9876543211'),
-            ('103', 'EN2022003', 'Sneha Kulkarni', 'sneha@college.edu', 'Mrs. V. Kulkarni', '9876543212'),
-            ('104', 'EN2022004', 'Vikram Singh', 'vikram@college.edu', 'Mr. Rajendra Singh', '9876543213'),
-            ('105', 'EN2022005', 'Priya Joshi', 'priyastudent@college.edu', 'Mr. Anant Joshi', '9876543214'),
-            ('106', 'EN2022006', 'Rohan Mehta', 'rohan@college.edu', 'Mr. K. Mehta', '9876543215'),
-            ('107', 'EN2022007', 'Neha Shinde', 'neha@college.edu', 'Mr. P. Shinde', '9876543216')
+            ('101', 'EN2024001', 'Varad Rege', 'varad.rege@gmail.com', 'Rege', '9518506986')
         ]
         
         student_records = []
@@ -173,60 +167,12 @@ def seed_database():
             
             cursor.execute("""
                 INSERT INTO students (user_id, class_id, roll_number, enrollment_number, full_name, email, parent_name, parent_phone, admission_year)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 2022)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 2024)
             """, (u_id, class_ids['SY Computer A'], roll, enroll, name, email, parent, p_phone))
             student_records.append(cursor.lastrowid)
-            
-        # Add a few to TY Computer A
-        ty_a_students = [
-            ('201', 'EN2021001', 'Akash Verma', 'akash@college.edu', 'Mr. S. Verma', '9876543220'),
-            ('202', 'EN2021002', 'Pooja Nair', 'pooja@college.edu', 'Mr. R. Nair', '9876543221'),
-        ]
-        for roll, enroll, name, email, parent, p_phone in ty_a_students:
-            cursor.execute("""
-                INSERT INTO users (password_hash, role, full_name, email, is_active)
-                VALUES (%s, 'student', %s, %s, 1)
-            """, (student_pass, name, email))
-            u_id = cursor.lastrowid
-            cursor.execute("""
-                INSERT INTO students (user_id, class_id, roll_number, enrollment_number, full_name, email, parent_name, parent_phone, admission_year)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 2021)
-            """, (u_id, class_ids['TY Computer A'], roll, enroll, name, email, parent, p_phone))
-
-        # Insert Attendance
-        # We will insert for the last 5 days
-        today = datetime.now().date()
-        for i in range(5):
-            date = today - timedelta(days=i)
-            day_name = date.strftime('%A')
-            
-            # Find timetables for this day
-            cursor.execute("SELECT timetable_id, teacher_subject_id FROM timetables WHERE day_of_week = %s", (day_name,))
-            daily_tts = cursor.fetchall()
-            
-            for tt_id, ts_id in daily_tts:
-                # Find class for this ts_id
-                cursor.execute("SELECT class_id FROM teacher_subjects WHERE teacher_subject_id = %s", (ts_id,))
-                c_id = cursor.fetchone()[0]
-                
-                # Find students in this class
-                cursor.execute("SELECT student_id FROM students WHERE class_id = %s", (c_id,))
-                class_students = cursor.fetchall()
-                
-                for (s_id,) in class_students:
-                    # Random attendance
-                    status = random.choices(['present', 'absent', 'late'], weights=[0.8, 0.15, 0.05])[0]
-                    # If it's today and we want to simulate pending, maybe skip some
-                    if i == 0 and random.random() < 0.3:
-                        continue
-                        
-                    cursor.execute("""
-                        INSERT INTO attendance (student_id, timetable_id, attendance_date, status, marked_by)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (s_id, tt_id, date, status, 1)) # Marked by admin/teacher (id=1)
 
         conn.commit()
-        print("Dummy data inserted successfully.")
+        print("Database seeded with real student Varad Rege successfully.")
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
