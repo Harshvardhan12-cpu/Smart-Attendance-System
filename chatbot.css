@@ -243,11 +243,12 @@
     background-color: var(--bg-hover);
     color: var(--text-primary);
     border-radius: 14px 14px 14px 4px;
-    padding: 10px 14px;
+    padding: 10px 32px 10px 14px;
     font-size: 0.825rem;
     line-height: 1.55;
     word-wrap: break-word;
     border: 1px solid var(--border-subtle);
+    position: relative;
 }
 
 /* Bold text in messages */
@@ -461,6 +462,42 @@
     transform: none;
 }
 
+/* --- Voice Input Mic Button --- */
+.chatbot-mic-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--input-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.chatbot-mic-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.chatbot-mic-btn.listening {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+    animation: micPulse 1.2s infinite;
+}
+
+@keyframes micPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
 
 /* --- Quick Action Suggestion Chips --- */
 .chatbot-suggestions {
@@ -468,6 +505,8 @@
     flex-wrap: wrap;
     gap: 6px;
     padding: 8px 16px 4px;
+    max-height: 90px;
+    overflow-y: auto;
 }
 
 .chatbot-suggestion-chip {
@@ -552,4 +591,123 @@
         max-width: 400px;
         max-height: 70vh;
     }
+}
+
+/* --- Floating Attention Badge --- */
+.chatbot-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: var(--absent);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-card);
+    animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); box-shadow: 0 0 8px rgba(220, 53, 69, 0.6); }
+}
+
+/* --- Live Online Dot --- */
+.chatbot-online-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #10b981;
+    margin-right: 4px;
+    animation: onlineGlow 2s infinite;
+}
+
+@keyframes onlineGlow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* --- Copy Response Button --- */
+.chatbot-copy-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    opacity: 0.4;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.chatbot-msg.bot:hover .chatbot-copy-btn {
+    opacity: 0.85;
+}
+
+.chatbot-copy-btn:hover {
+    opacity: 1 !important;
+    color: var(--primary);
+    background-color: var(--bg-hover);
+}
+
+/* --- One-Click Action Buttons --- */
+.chatbot-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+    align-self: flex-start;
+}
+
+.cb-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent-teal, #14b8a6) 100%);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(15, 76, 92, 0.25);
+    transition: all 0.2s ease;
+}
+
+.cb-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(15, 76, 92, 0.35);
+    filter: brightness(1.08);
+}
+
+.cb-action-btn:active {
+    transform: translateY(0);
+}
+
+/* --- Welcome Tags --- */
+.chatbot-welcome-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.chatbot-welcome-tags .badge {
+    font-size: 0.65rem;
+    padding: 4px 8px;
+    background-color: var(--bg-hover) !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--border-color) !important;
 }

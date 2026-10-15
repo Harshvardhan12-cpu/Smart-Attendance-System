@@ -38,7 +38,10 @@ def add_student():
     email = (data.get('email') or '').strip()
     parent_name = (data.get('parent_name') or data.get('parentName') or '').strip()
     parent_phone = (data.get('parent_phone') or data.get('parentPhone') or '').strip()
-    enrollment_number = (data.get('enrollment_number') or f"EN{datetime.now().year}{roll_number.zfill(3)}").strip()
+    enrollment_number = (data.get('enrollment_number') or '').strip()
+    if not enrollment_number:
+        import time
+        enrollment_number = f"EN{datetime.now().year}{str(class_id)}{roll_number.zfill(3)}{str(int(time.time() * 1000))[-4:]}"
 
     if not class_id or not roll_number or not full_name:
         return jsonify({'error': 'Class ID, roll number, and student full name are required'}), 400

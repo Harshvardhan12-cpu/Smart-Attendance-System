@@ -100,7 +100,7 @@
                     email: cleanEmail,
                     role: data.user.role,
                     teacher_id: data.user.teacher_id,
-                    designation: data.user.role === 'teacher' ? 'Faculty Member' : 'Administrator',
+                    designation: data.user.role === 'teacher' ? 'Faculty Member' : (data.user.role === 'student' ? 'Student' : 'Administrator'),
                     avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=120'
                 },
                 rememberMe: rememberMe,
@@ -157,7 +157,7 @@
                     email: data.user.email,
                     role: data.user.role,
                     teacher_id: data.user.teacher_id,
-                    designation: data.user.role === 'teacher' ? 'Faculty Member' : 'Administrator',
+                    designation: data.user.role === 'teacher' ? 'Faculty Member' : (data.user.role === 'student' ? 'Student' : 'Administrator'),
                     avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=120'
                 },
                 rememberMe: false,
@@ -241,10 +241,13 @@
                     session.user.teacher_id = serverUser.teacher_id;
                     sessionStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session));
 
-                    const profileNameEls = document.querySelectorAll('.profile-dropdown-name, #profileDropdown + .dropdown-menu .fw-semibold');
+                    const profileNameEls = document.querySelectorAll('.profile-dropdown-name');
                     profileNameEls.forEach(el => {
                         if (el && serverUser.full_name) el.textContent = serverUser.full_name;
                     });
+                    // Also update the dropdown header name inside the profile dropdown menu
+                    const dropdownHeader = document.querySelector('#profileDropdown + .dropdown-menu .fw-semibold');
+                    if (dropdownHeader && serverUser.full_name) dropdownHeader.textContent = serverUser.full_name;
 
                     const greetingEl = document.querySelector('.welcome-greeting');
                     if (greetingEl && serverUser.full_name) {

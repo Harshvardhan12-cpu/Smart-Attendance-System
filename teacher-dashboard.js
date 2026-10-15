@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
             htmlElement.setAttribute('data-bs-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
+            if (typeof updateSettingsThemeLabel === 'function') updateSettingsThemeLabel();
             showToast(`Theme changed to ${newTheme} mode!`, 'info');
         });
     }
@@ -105,6 +106,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load initial dashboard stats & schedule
     loadDashboardStats();
 
+    // Route to default page if configured in preferences
+    try {
+        const savedPrefs = JSON.parse(localStorage.getItem('erpSettings') || '{}');
+        if (savedPrefs.defaultPage && savedPrefs.defaultPage !== 'Dashboard') {
+            simulateNav(savedPrefs.defaultPage);
+        }
+    } catch (_) {}
+
     // History Filter Event Listeners
     const historyDateInput = document.getElementById('historyDateInput');
     const historyLectureSelect = document.getElementById('historyLectureSelect');
@@ -113,6 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (historyDateInput) historyDateInput.addEventListener('change', filterAttendanceHistory);
     if (historyLectureSelect) historyLectureSelect.addEventListener('change', filterAttendanceHistory);
     if (historyStatusSelect) historyStatusSelect.addEventListener('change', filterAttendanceHistory);
+
+    // Initialize Add Student Modal auto-class-loader
+    initAddStudentModal();
 });
 
 // --- Navigation Item Click & Header Update Simulation ---
@@ -136,7 +148,7 @@ function simulateNav(moduleName) {
         sec.classList.remove('active');
     });
 
-    const sectionId = 'section-' + moduleName.replace(/\s+/g, '');
+    const sectionId = 'section-' + moduleName.replace(/[\s&]/g, '');
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
         targetSection.style.display = 'block';
@@ -150,6 +162,10 @@ function simulateNav(moduleName) {
             loadAttendanceForm();
         } else if (moduleName === 'Attendance History') {
             loadAttendanceHistory();
+        } else if (moduleName === 'Reports') {
+            loadReportFilters();
+        } else if (moduleName === 'Settings') {
+            loadSettings();
         }
     }
 
@@ -167,21 +183,31 @@ async function loadDashboardStats() {
         if (!res.ok) return;
         const stats = await res.json();
 
-        // Update card stats numbers
+        // Update card stats numbers using IDs for reliability
+        const todayClassesEl = document.getElementById('statTodayClasses');
+        if (todayClassesEl) todayClassesEl.textContent = `${stats.todays_classes} Lectures`;
+
         const statCards = document.querySelectorAll('.stat-card');
-        if (statCards.length >= 6) {
-            statCards[0].querySelector('.stat-number').textContent = `${stats.todays_classes} Lectures`;
+        if (statCards.length >= 2) {
             statCards[1].querySelector('.stat-number').textContent = `${stats.students_assigned} Students`;
-            statCards[2].querySelector('.stat-number').textContent = `${stats.attendance_submitted} / ${stats.todays_classes} Classes`;
-            statCards[3].querySelector('.stat-number').textContent = `${stats.students_present} Present`;
-            statCards[4].querySelector('.stat-number').textContent = `${stats.students_absent} Absent`;
-            statCards[5].querySelector('.stat-number').textContent = `${stats.pending_attendance} Classes`;
         }
+        const attSubmittedEl = document.getElementById('statAttendanceSubmitted');
+        if (attSubmittedEl) attSubmittedEl.textContent = `${stats.attendance_submitted} / ${stats.todays_classes} Classes`;
+
+        if (statCards.length >= 4) {
+            statCards[3].querySelector('.stat-number').textContent = `${stats.students_present} Present`;
+        }
+        if (statCards.length >= 5) {
+            statCards[4].querySelector('.stat-number').textContent = `${stats.students_absent} Absent`;
+        }
+        const pendingEl = document.getElementById('statPendingAttendance');
+        if (pendingEl) pendingEl.textContent = `${stats.pending_attendance} Classes`;
 
         // Fetch today's timetable, recent attendance, and whatsapp logs
         loadTodaySchedule();
         loadRecentAttendance();
         loadWhatsappLogs();
+        loadNotifications();
     } catch (e) {
         console.error("Dashboard stats error:", e);
     }
@@ -239,6 +265,60 @@ async function loadWhatsappLogs() {
         });
     } catch (e) {
         console.error("Error loading whatsapp logs:", e);
+    }
+}
+
+async function loadNotifications() {
+    const container = document.getElementById('notifDropdownItems');
+    const badge = document.getElementById('notifBadge');
+    const countBadge = document.getElementById('notifCountBadge');
+
+    if (!container) return;
+
+    try {
+        const res = await fetch('/api/reports/notifications');
+        if (!res.ok) return;
+        const notifications = await res.json();
+
+        container.innerHTML = '';
+
+        if (!notifications || notifications.length === 0) {
+            container.innerHTML = `
+                <li class="text-center py-3 text-muted" style="font-size: 12px;">
+                    <i class="fa-solid fa-circle-check text-success d-block mb-1" style="font-size: 1.2rem;"></i>
+                    All caught up! No new notifications.
+                </li>
+            `;
+            if (badge) badge.style.display = 'none';
+            if (countBadge) countBadge.textContent = '0';
+            return;
+        }
+
+        // Update badge count
+        const pendingCount = notifications.filter(n => n.type === 'pending' || n.type === 'whatsapp_failed' || n.type === 'low_attendance').length;
+        if (badge) {
+            badge.textContent = pendingCount > 0 ? pendingCount : '';
+            badge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+        }
+        if (countBadge) countBadge.textContent = `${notifications.length} New`;
+
+        notifications.forEach(n => {
+            container.innerHTML += `
+                <li>
+                    <a class="dropdown-item py-2 border-bottom" href="#" onclick="simulateNav('${n.action}')">
+                        <div class="d-flex gap-2">
+                            <div class="mt-1" style="color: ${n.color};"><i class="${n.icon}"></i></div>
+                            <div>
+                                <p class="mb-0 text-wrap" style="font-size: 12.5px;">${n.message}</p>
+                                <span class="text-muted" style="font-size: 11px;">${n.sub} • ${n.time}</span>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+            `;
+        });
+    } catch (e) {
+        console.error('Error loading notifications:', e);
     }
 }
 
@@ -862,13 +942,17 @@ async function submitAddStudent(e) {
         showToast('Please select a class first.', 'error');
         return;
     }
+    if (!rollNumber || !fullName) {
+        showToast('Roll number and student name are required.', 'error');
+        return;
+    }
 
     try {
         const res = await fetch('/api/students', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                class_id: classId,
+                class_id: parseInt(classId),
                 roll_number: rollNumber,
                 full_name: fullName,
                 email: email,
@@ -893,6 +977,34 @@ async function submitAddStudent(e) {
     } catch (err) {
         showToast('Error adding student.', 'error');
     }
+}
+
+/**
+ * Pre-populate the Add Student class dropdown whenever the modal is opened.
+ * This fixes the bug where the dropdown is empty if 'My Classes' was never visited.
+ */
+function initAddStudentModal() {
+    const modalEl = document.getElementById('addStudentModal');
+    if (!modalEl) return;
+    modalEl.addEventListener('show.bs.modal', async function () {
+        const classSelect = document.getElementById('addStudentClassSelect');
+        if (!classSelect) return;
+        // Only reload if empty (no real options loaded yet)
+        if (classSelect.options.length <= 1) {
+            classSelect.innerHTML = '<option value="">Loading classes...</option>';
+            try {
+                const res = await fetch('/api/classes');
+                if (!res.ok) { classSelect.innerHTML = '<option value="">Error loading classes</option>'; return; }
+                const classes = await res.json();
+                classSelect.innerHTML = '<option value="">Select a class...</option>';
+                (classes || []).forEach(c => {
+                    classSelect.innerHTML += `<option value="${c.class_id}">${c.section_name} - ${c.subject_name}</option>`;
+                });
+            } catch (e) {
+                classSelect.innerHTML = '<option value="">Error loading classes</option>';
+            }
+        }
+    });
 }
 
 function viewStudentDetails(studentName, rollNo) {
@@ -1143,16 +1255,621 @@ async function saveScheduleChanges() {
 }
 
 // ============================================================
+// Settings Functions
+// ============================================================
+
+function loadSettings() {
+    // Load profile from session data
+    const authUser = window.AuthService ? window.AuthService.getUser() : null;
+    if (authUser) {
+        const nameEl = document.getElementById('settingsFullName');
+        const emailEl = document.getElementById('settingsEmail');
+        const roleEl = document.getElementById('settingsRole');
+        const teacherIdEl = document.getElementById('settingsTeacherId');
+        if (nameEl) nameEl.value = authUser.full_name || '';
+        if (emailEl) emailEl.value = authUser.email || '';
+        if (roleEl) roleEl.value = (authUser.role || 'teacher').charAt(0).toUpperCase() + (authUser.role || 'teacher').slice(1);
+        if (teacherIdEl) teacherIdEl.value = authUser.teacher_id ? `T-${authUser.teacher_id}` : (authUser.user_id ? `T-${authUser.user_id}` : 'N/A');
+    }
+
+    // Load saved settings from localStorage
+    const saved = JSON.parse(localStorage.getItem('erpSettings') || '{}');
+
+    // Attendance Policy elements
+    const defaultMarkStatus = document.getElementById('settingsDefaultMarkStatus');
+    const lateWeightage = document.getElementById('settingsLateWeightage');
+    const lateGracePeriod = document.getElementById('settingsLateGracePeriod');
+    const editLock = document.getElementById('settingsEditLock');
+
+    if (defaultMarkStatus && saved.defaultMarkStatus) defaultMarkStatus.value = saved.defaultMarkStatus;
+    if (lateWeightage && saved.lateWeightage !== undefined) lateWeightage.value = saved.lateWeightage;
+    if (lateGracePeriod && saved.lateGracePeriod !== undefined) lateGracePeriod.value = saved.lateGracePeriod;
+    if (editLock && saved.editLock) editLock.value = saved.editLock;
+
+    // Notification elements
+    const whatsappToggle = document.getElementById('settingsWhatsappEnabled');
+    const absentOnlyToggle = document.getElementById('settingsAbsentOnlyAlert');
+    const smsFallbackToggle = document.getElementById('settingsSmsFallback');
+    const thresholdSlider = document.getElementById('settingsThreshold');
+    const thresholdLabel = document.getElementById('thresholdValue');
+
+    if (whatsappToggle && saved.whatsappEnabled !== undefined) whatsappToggle.checked = saved.whatsappEnabled;
+    if (absentOnlyToggle && saved.absentOnlyAlert !== undefined) absentOnlyToggle.checked = saved.absentOnlyAlert;
+    if (smsFallbackToggle && saved.smsFallback !== undefined) smsFallbackToggle.checked = saved.smsFallback;
+    if (thresholdSlider && saved.threshold !== undefined) { thresholdSlider.value = saved.threshold; }
+    if (thresholdLabel && thresholdSlider) thresholdLabel.textContent = `${thresholdSlider.value}%`;
+
+    // AI Chatbot preferences
+    const voiceLang = document.getElementById('settingsVoiceLang');
+    const chatbotSpeech = document.getElementById('settingsChatbotSpeech');
+    const chatbotSound = document.getElementById('settingsChatbotSound');
+
+    if (voiceLang && saved.voiceLang) voiceLang.value = saved.voiceLang;
+    if (chatbotSpeech && saved.chatbotSpeech !== undefined) chatbotSpeech.checked = saved.chatbotSpeech;
+    if (chatbotSound && saved.chatbotSound !== undefined) chatbotSound.checked = saved.chatbotSound;
+
+    // Report preferences
+    const defaultExportFormat = document.getElementById('settingsDefaultExportFormat');
+    const highlightDefaulters = document.getElementById('settingsHighlightDefaulters');
+    const includeSignatures = document.getElementById('settingsIncludeSignatures');
+
+    if (defaultExportFormat && saved.defaultExportFormat) defaultExportFormat.value = saved.defaultExportFormat;
+    if (highlightDefaulters && saved.highlightDefaulters !== undefined) highlightDefaulters.checked = saved.highlightDefaulters;
+    if (includeSignatures && saved.includeSignatures !== undefined) includeSignatures.checked = saved.includeSignatures;
+
+    // Display & Session elements
+    const defaultPage = document.getElementById('settingsDefaultPage');
+    const recordsPerPage = document.getElementById('settingsRecordsPerPage');
+    const sessionTimeout = document.getElementById('settingsSessionTimeout');
+
+    if (defaultPage && saved.defaultPage) defaultPage.value = saved.defaultPage;
+    if (recordsPerPage && saved.recordsPerPage) recordsPerPage.value = saved.recordsPerPage;
+    if (sessionTimeout && saved.sessionTimeout !== undefined) sessionTimeout.value = saved.sessionTimeout;
+
+    // Academic Configuration
+    const academicYear = document.getElementById('settingsAcademicYear');
+    const semesterTerm = document.getElementById('settingsSemesterTerm');
+    const department = document.getElementById('settingsDepartment');
+    const institution = document.getElementById('settingsInstitution');
+
+    if (academicYear && saved.academicYear) academicYear.value = saved.academicYear;
+    if (semesterTerm && saved.semesterTerm) semesterTerm.value = saved.semesterTerm;
+    if (department && saved.department) department.value = saved.department;
+    if (institution && saved.institution) institution.value = saved.institution;
+
+    // Threshold slider live update
+    if (thresholdSlider) {
+        thresholdSlider.oninput = function() {
+            if (thresholdLabel) thresholdLabel.textContent = `${this.value}%`;
+        };
+    }
+
+    // Update theme label
+    updateSettingsThemeLabel();
+
+    // Store global references
+    window._erpSettings = saved;
+    window._chatbotVoiceLang = saved.voiceLang || 'en-IN';
+    window._chatbotSpeechEnabled = saved.chatbotSpeech || false;
+    window._chatbotSoundEnabled = saved.chatbotSound !== false;
+
+    // Initialize keyboard shortcuts if not done
+    initKeyboardShortcuts();
+}
+
+function updateSettingsThemeLabel() {
+    const currentTheme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+    const label = document.getElementById('settingsThemeLabel');
+    const icon = document.getElementById('settingsThemeIcon');
+    if (label) label.textContent = currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
+    if (icon) icon.className = currentTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+}
+
+function saveSettings() {
+    const settings = {
+        // Attendance Automation
+        defaultMarkStatus: document.getElementById('settingsDefaultMarkStatus')?.value ?? 'present',
+        lateWeightage: document.getElementById('settingsLateWeightage')?.value ?? '1.0',
+        lateGracePeriod: document.getElementById('settingsLateGracePeriod')?.value ?? '10',
+        editLock: document.getElementById('settingsEditLock')?.value ?? 'never',
+
+        // Notifications
+        whatsappEnabled: document.getElementById('settingsWhatsappEnabled')?.checked ?? true,
+        absentOnlyAlert: document.getElementById('settingsAbsentOnlyAlert')?.checked ?? false,
+        smsFallback: document.getElementById('settingsSmsFallback')?.checked ?? false,
+        threshold: document.getElementById('settingsThreshold')?.value ?? '75',
+
+        // AI Chatbot
+        voiceLang: document.getElementById('settingsVoiceLang')?.value ?? 'en-IN',
+        chatbotSpeech: document.getElementById('settingsChatbotSpeech')?.checked ?? false,
+        chatbotSound: document.getElementById('settingsChatbotSound')?.checked ?? true,
+
+        // Reports
+        defaultExportFormat: document.getElementById('settingsDefaultExportFormat')?.value ?? 'pdf',
+        highlightDefaulters: document.getElementById('settingsHighlightDefaulters')?.checked ?? true,
+        includeSignatures: document.getElementById('settingsIncludeSignatures')?.checked ?? true,
+
+        // Display & Session
+        defaultPage: document.getElementById('settingsDefaultPage')?.value ?? 'Dashboard',
+        recordsPerPage: document.getElementById('settingsRecordsPerPage')?.value ?? '25',
+        sessionTimeout: document.getElementById('settingsSessionTimeout')?.value ?? '30',
+
+        // Academic
+        academicYear: document.getElementById('settingsAcademicYear')?.value ?? '2026-27',
+        semesterTerm: document.getElementById('settingsSemesterTerm')?.value ?? 'odd',
+        department: document.getElementById('settingsDepartment')?.value ?? 'Computer Engineering',
+        institution: document.getElementById('settingsInstitution')?.value ?? 'College of Engineering'
+    };
+
+    localStorage.setItem('erpSettings', JSON.stringify(settings));
+    window._erpSettings = settings;
+    window._chatbotVoiceLang = settings.voiceLang;
+    window._chatbotSpeechEnabled = settings.chatbotSpeech;
+    window._chatbotSoundEnabled = settings.chatbotSound;
+
+    showToast('All ERP preferences saved successfully!', 'success');
+}
+
+async function changeTeacherPassword() {
+    const currentPassword = document.getElementById('settingsCurrentPassword')?.value?.trim();
+    const newPassword = document.getElementById('settingsNewPassword')?.value?.trim();
+
+    if (!currentPassword || !newPassword) {
+        showToast('Please enter both your current and new password.', 'error');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        showToast('New password must be at least 6 characters long.', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            showToast('Password updated successfully!', 'success');
+            const curInput = document.getElementById('settingsCurrentPassword');
+            const newInput = document.getElementById('settingsNewPassword');
+            if (curInput) curInput.value = '';
+            if (newInput) newInput.value = '';
+        } else {
+            showToast(data.error || 'Failed to update password.', 'error');
+        }
+    } catch (e) {
+        showToast('Error updating password: ' + e.message, 'error');
+    }
+}
+
+function exportSettingsBackup() {
+    const settings = localStorage.getItem('erpSettings') || '{}';
+    const blob = new Blob([settings], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `erp_settings_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Settings backup downloaded!', 'success');
+}
+
+function importSettingsBackup(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (typeof imported === 'object' && imported !== null) {
+                localStorage.setItem('erpSettings', JSON.stringify(imported));
+                loadSettings();
+                showToast('Settings restored successfully from backup!', 'success');
+            } else {
+                showToast('Invalid settings file format.', 'error');
+            }
+        } catch (err) {
+            showToast('Error parsing settings file: ' + err.message, 'error');
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = ''; // Reset input
+}
+
+function initKeyboardShortcuts() {
+    if (window._erpShortcutsInitialized) return;
+    window._erpShortcutsInitialized = true;
+
+    document.addEventListener('keydown', function(e) {
+        // Do not trigger shortcuts when user is typing in form inputs
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
+
+        // Alt + 1..5 for Navigation
+        if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+            if (e.key === '1') { e.preventDefault(); switchSection('Dashboard'); }
+            else if (e.key === '2') { e.preventDefault(); switchSection('Mark Attendance'); }
+            else if (e.key === '3') { e.preventDefault(); switchSection('My Classes'); }
+            else if (e.key === '4') { e.preventDefault(); switchSection('Attendance History'); }
+            else if (e.key === '5') { e.preventDefault(); switchSection('Reports'); }
+        }
+
+        // Ctrl + Space or Ctrl + B for Chatbot toggle
+        if ((e.ctrlKey && e.code === 'Space') || (e.ctrlKey && e.key.toLowerCase() === 'b')) {
+            e.preventDefault();
+            const chatbotTrigger = document.getElementById('chatbotTriggerBtn');
+            if (chatbotTrigger) chatbotTrigger.click();
+        }
+
+        // Escape to close modals or chatbot
+        if (e.key === 'Escape') {
+            const chatbotModal = document.getElementById('chatbotContainer');
+            if (chatbotModal && chatbotModal.classList.contains('active')) {
+                const closeBtn = document.getElementById('chatbotCloseBtn');
+                if (closeBtn) closeBtn.click();
+            }
+        }
+    });
+}
+
+// ============================================================
+// Monthly Reports Functions
+// ============================================================
+
+async function loadReportFilters() {
+    // Set current month
+    const monthSelect = document.getElementById('reportMonth');
+    const yearInput = document.getElementById('reportYear');
+    if (monthSelect) monthSelect.value = new Date().getMonth() + 1;
+    if (yearInput) yearInput.value = new Date().getFullYear();
+
+    // Load classes for filter
+    const classFilter = document.getElementById('reportClassFilter');
+    if (!classFilter) return;
+    try {
+        const res = await fetch('/api/classes');
+        if (!res.ok) return;
+        const classes = await res.json();
+        classFilter.innerHTML = '<option value="">All Classes</option>';
+        const seen = new Set();
+        (classes || []).forEach(c => {
+            if (!seen.has(c.class_id)) {
+                seen.add(c.class_id);
+                classFilter.innerHTML += `<option value="${c.class_id}">${c.section_name}</option>`;
+            }
+        });
+    } catch (e) {
+        console.error('Error loading report classes:', e);
+    }
+}
+
+async function generateMonthlyReport() {
+    const month = document.getElementById('reportMonth').value;
+    const year = document.getElementById('reportYear').value;
+    const classId = document.getElementById('reportClassFilter').value;
+    const outputArea = document.getElementById('reportOutputArea');
+
+    if (!outputArea) return;
+
+    outputArea.innerHTML = `
+        <div class="dashboard-card">
+            <div class="text-center py-4">
+                <div class="spinner-loading-wrapper">
+                    <i class="fa-solid fa-circle-notch spinner-loading-icon fs-3"></i>
+                    <span style="font-size: 13px; font-weight: 500;">Generating monthly class-wise attendance report...</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    try {
+        let url = `/api/reports/monthly-report?month=${month}&year=${year}`;
+        if (classId) url += `&class_id=${classId}`;
+
+        const res = await fetch(url);
+        if (!res.ok) {
+            outputArea.innerHTML = `<div class="dashboard-card"><p class="text-danger">Error generating report.</p></div>`;
+            return;
+        }
+        const data = await res.json();
+
+        // Store current params for download
+        window._reportParams = { month, year, classId };
+
+        if (!data.classes || data.classes.length === 0) {
+            outputArea.innerHTML = `
+                <div class="dashboard-card">
+                    <div class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-folder-open d-block mb-2" style="font-size: 2rem; opacity: 0.4;"></i>
+                        <p class="mb-0" style="font-size: 13px;">No attendance data found for ${data.month_name} ${data.year}.</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const summary = data.summary || {};
+        const avgColor = (summary.overall_attendance_pct >= 75) ? 'var(--present)' : (summary.overall_attendance_pct >= 50 ? 'var(--pending)' : 'var(--absent)');
+
+        let html = `
+            <!-- Top Report Banner with Global Export Actions -->
+            <div class="dashboard-card mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h5 class="fw-semibold mb-1" style="font-size: 1.05rem; color: var(--text-primary);">
+                            <i class="fa-solid fa-calendar-check me-2" style="color: var(--primary);"></i>
+                            ${data.month_name} ${data.year} — Monthly Attendance Report
+                        </h5>
+                        <p class="text-muted mb-0" style="font-size: 12px;">
+                            Period: <strong>${data.start_date}</strong> to <strong>${data.end_date}</strong> &nbsp;|&nbsp; 
+                            Covering <strong>${data.classes.length}</strong> class(es) &nbsp;|&nbsp;
+                            <strong>${summary.total_students || 0}</strong> students
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn-outline-custom" onclick="downloadReportPDF()" style="font-size: 12px; padding: 0.4rem 0.85rem;" title="Download complete monthly report as PDF">
+                            <i class="fa-solid fa-file-pdf me-1" style="color: #dc2626;"></i> Download Full PDF
+                        </button>
+                        <button class="btn-outline-custom" onclick="downloadReportExcel()" style="font-size: 12px; padding: 0.4rem 0.85rem;" title="Download complete monthly report as Excel">
+                            <i class="fa-solid fa-file-excel me-1" style="color: #059669;"></i> Download Full Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Executive KPI Metric Cards -->
+            <div class="row g-2 mb-3">
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="dashboard-card mb-0 p-3 text-center" style="border-top: 3px solid var(--primary);">
+                        <div class="text-muted fw-medium" style="font-size: 11px;">Total Classes</div>
+                        <div class="fs-4 fw-bold mt-1" style="color: var(--primary);">${summary.total_classes || 0}</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="dashboard-card mb-0 p-3 text-center" style="border-top: 3px solid var(--primary-dark);">
+                        <div class="text-muted fw-medium" style="font-size: 11px;">Enrolled Students</div>
+                        <div class="fs-4 fw-bold mt-1" style="color: var(--text-primary);">${summary.total_students || 0}</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="dashboard-card mb-0 p-3 text-center" style="border-top: 3px solid var(--present);">
+                        <div class="text-muted fw-medium" style="font-size: 11px;">Total Present</div>
+                        <div class="fs-4 fw-bold mt-1" style="color: var(--present);">${summary.total_present || 0}</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="dashboard-card mb-0 p-3 text-center" style="border-top: 3px solid var(--absent);">
+                        <div class="text-muted fw-medium" style="font-size: 11px;">Total Absent</div>
+                        <div class="fs-4 fw-bold mt-1" style="color: var(--absent);">${summary.total_absent || 0}</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="dashboard-card mb-0 p-3 text-center" style="border-top: 3px solid ${avgColor};">
+                        <div class="text-muted fw-medium" style="font-size: 11px;">Overall Average</div>
+                        <div class="fs-4 fw-bold mt-1" style="color: ${avgColor};">${summary.overall_attendance_pct || 0}%</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="dashboard-card mb-0 p-3 text-center" style="border-top: 3px solid #dc2626;">
+                        <div class="text-muted fw-medium" style="font-size: 11px;">Defaulters (&lt;75%)</div>
+                        <div class="fs-4 fw-bold mt-1" style="color: #dc2626;">${summary.total_defaulters || 0}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Executive Summary: Class-Wise Total Attendance Table -->
+            <div class="dashboard-card mb-3">
+                <div class="card-title">
+                    <span><i class="fa-solid fa-table-list me-2"></i>Executive Summary: Class-Wise Total Attendance</span>
+                    <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px;">All Classes Total Comparison</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Class Name</th>
+                                <th class="text-center">Enrolled</th>
+                                <th class="text-center">Lectures Held</th>
+                                <th class="text-center">Total Present</th>
+                                <th class="text-center">Total Absent</th>
+                                <th class="text-center">Total Late</th>
+                                <th class="text-center">Class Average %</th>
+                                <th class="text-center">Defaulters (&lt;75%)</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+        data.classes.forEach(cls => {
+            const clsAvgColor = cls.average_attendance >= 75 ? 'var(--present)' : (cls.average_attendance >= 50 ? 'var(--pending)' : 'var(--absent)');
+            const defaulterBadge = cls.defaulters_count > 0 
+                ? `<span class="badge" style="background-color: var(--absent-light); color: var(--absent); font-weight: 600;">${cls.defaulters_count} Student(s)</span>`
+                : `<span class="badge" style="background-color: var(--present-light); color: var(--present); font-weight: 600;">None (0)</span>`;
+
+            html += `
+                <tr>
+                    <td class="fw-semibold" style="color: var(--primary-dark); font-size: 13px;">
+                        <i class="fa-solid fa-graduation-cap me-1 text-muted"></i> ${cls.class_name}
+                    </td>
+                    <td class="text-center">${cls.total_students}</td>
+                    <td class="text-center fw-medium">${cls.total_lectures || 0}</td>
+                    <td class="text-center fw-bold" style="color: var(--present);">${cls.total_present || 0}</td>
+                    <td class="text-center fw-bold" style="color: var(--absent);">${cls.total_absent || 0}</td>
+                    <td class="text-center fw-medium" style="color: var(--pending);">${cls.total_late || 0}</td>
+                    <td class="text-center fw-bold" style="color: ${clsAvgColor}; font-size: 13px;">${cls.average_attendance}%</td>
+                    <td class="text-center">${defaulterBadge}</td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-1">
+                            <button class="btn-outline-custom" onclick="downloadReportPDF(${cls.class_id})" style="font-size: 11px; padding: 0.2rem 0.55rem;" title="Download PDF for ${cls.class_name}">
+                                <i class="fa-solid fa-file-pdf me-1" style="color: #dc2626;"></i> PDF
+                            </button>
+                            <button class="btn-outline-custom" onclick="downloadReportExcel(${cls.class_id})" style="font-size: 11px; padding: 0.2rem 0.55rem;" title="Download Excel for ${cls.class_name}">
+                                <i class="fa-solid fa-file-excel me-1" style="color: #059669;"></i> Excel
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        // Grand Total Row in Comparison Table
+        html += `
+                        <tr style="background-color: var(--bg-hover); font-weight: 700; border-top: 2px solid var(--border-color);">
+                            <td><i class="fa-solid fa-chart-pie me-1" style="color: var(--primary);"></i> OVERALL TOTAL / ALL CLASSES</td>
+                            <td class="text-center">${summary.total_students || 0}</td>
+                            <td class="text-center">—</td>
+                            <td class="text-center" style="color: var(--present);">${summary.total_present || 0}</td>
+                            <td class="text-center" style="color: var(--absent);">${summary.total_absent || 0}</td>
+                            <td class="text-center" style="color: var(--pending);">${summary.total_late || 0}</td>
+                            <td class="text-center fw-bold" style="color: ${avgColor}; font-size: 13px;">${summary.overall_attendance_pct || 0}%</td>
+                            <td class="text-center" style="color: #dc2626;">${summary.total_defaulters || 0} Defaulter(s)</td>
+                            <td class="text-center">
+                                <span class="badge" style="background-color: var(--primary-light); color: var(--primary);">All Classes</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section Title: Class Rosters -->
+        <div class="d-flex align-items-center justify-content-between mb-2 mt-4">
+            <h6 class="fw-bold mb-0" style="color: var(--text-primary); font-size: 0.95rem;">
+                <i class="fa-solid fa-users-rectangle me-2" style="color: var(--primary);"></i>
+                Class-Wise Detailed Student Rosters
+            </h6>
+            <span class="text-muted" style="font-size: 11px;">Showing all student lecture breakdowns & defaulter flags</span>
+        </div>
+        `;
+
+        // Render detailed cards for each class
+        data.classes.forEach(cls => {
+            let tableRows = '';
+            cls.students.forEach(s => {
+                const pctColor = s.attendance_percentage >= 75 ? 'var(--present)' : (s.attendance_percentage >= 50 ? 'var(--pending)' : 'var(--absent)');
+                const isDefaulter = s.attendance_percentage < 75;
+                const statusBadge = isDefaulter
+                    ? `<span class="badge" style="background-color: var(--absent-light); color: var(--absent); font-weight: 600;">Defaulter</span>`
+                    : `<span class="badge" style="background-color: var(--present-light); color: var(--present); font-weight: 600;">Regular</span>`;
+
+                tableRows += `
+                    <tr style="${isDefaulter ? 'background-color: rgba(220, 38, 38, 0.03);' : ''}">
+                        <td class="fw-semibold text-secondary" style="font-size: 12px;">${s.roll_number}</td>
+                        <td class="fw-medium">
+                            ${s.full_name}
+                            ${isDefaulter ? '<i class="fa-solid fa-triangle-exclamation ms-1 text-danger" title="Low attendance alert (<75%)"></i>' : ''}
+                        </td>
+                        <td class="text-center">${s.total_lectures}</td>
+                        <td class="text-center" style="color: var(--present);">${s.present_count}</td>
+                        <td class="text-center" style="color: var(--absent);">${s.absent_count}</td>
+                        <td class="text-center" style="color: var(--pending);">${s.late_count}</td>
+                        <td class="text-center fw-bold" style="color: ${pctColor};">${s.attendance_percentage}%</td>
+                        <td class="text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+
+            const clsAvgColor = cls.average_attendance >= 75 ? 'var(--present)' : (cls.average_attendance >= 50 ? 'var(--pending)' : 'var(--absent)');
+
+            html += `
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span><i class="fa-solid fa-chalkboard-user me-2"></i>Class: ${cls.class_name}</span>
+                            <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px;">${cls.total_students} Students</span>
+                            <span class="badge" style="background-color: ${clsAvgColor}20; color: ${clsAvgColor}; font-size: 11px;">Avg: ${cls.average_attendance}%</span>
+                            <span class="badge" style="background-color: #dc262618; color: #dc2626; font-size: 11px;">${cls.defaulters_count} Defaulter(s)</span>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button class="btn-outline-custom" onclick="downloadReportPDF(${cls.class_id})" style="font-size: 11px; padding: 0.25rem 0.65rem;" title="Download PDF for ${cls.class_name}">
+                                <i class="fa-solid fa-file-pdf me-1" style="color: #dc2626;"></i> PDF
+                            </button>
+                            <button class="btn-outline-custom" onclick="downloadReportExcel(${cls.class_id})" style="font-size: 11px; padding: 0.25rem 0.65rem;" title="Download Excel for ${cls.class_name}">
+                                <i class="fa-solid fa-file-excel me-1" style="color: #059669;"></i> Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Roll No</th>
+                                    <th>Student Name</th>
+                                    <th class="text-center">Total Lectures</th>
+                                    <th class="text-center">Present</th>
+                                    <th class="text-center">Absent</th>
+                                    <th class="text-center">Late</th>
+                                    <th class="text-center">Attendance %</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                                <tr style="background-color: var(--bg-hover); font-weight: 700;">
+                                    <td></td>
+                                    <td>CLASS TOTAL / AVERAGE (${cls.total_students} students)</td>
+                                    <td class="text-center">${cls.total_lectures || 0}</td>
+                                    <td class="text-center" style="color: var(--present);">${cls.total_present || 0}</td>
+                                    <td class="text-center" style="color: var(--absent);">${cls.total_absent || 0}</td>
+                                    <td class="text-center" style="color: var(--pending);">${cls.total_late || 0}</td>
+                                    <td class="text-center fw-bold" style="color: ${clsAvgColor};">${cls.average_attendance}%</td>
+                                    <td class="text-center" style="color: #dc2626;">${cls.defaulters_count} Defaulter(s)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        });
+
+        outputArea.innerHTML = html;
+        showToast(`Report generated for ${data.month_name} ${data.year}!`, 'success');
+
+    } catch (e) {
+        outputArea.innerHTML = `<div class="dashboard-card"><p class="text-danger">Error generating report: ${e.message}</p></div>`;
+    }
+}
+
+function downloadReportPDF(classId) {
+    const month = document.getElementById('reportMonth')?.value || window._reportParams?.month || (new Date().getMonth() + 1);
+    const year = document.getElementById('reportYear')?.value || window._reportParams?.year || new Date().getFullYear();
+    const filterClassId = classId !== undefined ? classId : (document.getElementById('reportClassFilter')?.value || window._reportParams?.classId || '');
+
+    let url = `/api/reports/monthly-report/download?month=${month}&year=${year}`;
+    if (filterClassId) url += `&class_id=${filterClassId}`;
+
+    showToast('Generating and downloading PDF report...', 'info');
+    window.open(url, '_blank');
+}
+
+function downloadReportExcel(classId) {
+    const month = document.getElementById('reportMonth')?.value || window._reportParams?.month || (new Date().getMonth() + 1);
+    const year = document.getElementById('reportYear')?.value || window._reportParams?.year || new Date().getFullYear();
+    const filterClassId = classId !== undefined ? classId : (document.getElementById('reportClassFilter')?.value || window._reportParams?.classId || '');
+
+    let url = `/api/reports/monthly-report/excel?month=${month}&year=${year}`;
+    if (filterClassId) url += `&class_id=${filterClassId}`;
+
+    showToast('Generating and downloading Excel report...', 'info');
+    window.open(url, '_blank');
+}
+
+// ============================================================
 
 function simulateLogout() {
     if (confirm("Are you sure you want to logout of Smart Attendance ERP?")) {
         showToast("Logging out...", "info");
-        localStorage.removeItem(STORAGE_KEY_SCHEDULE);
         setTimeout(() => {
             if (window.AuthService) {
-                window.AuthService.logout('Authentication/login.html');
+                window.AuthService.logout('/login');
             } else {
-                window.location.replace('Authentication/login.html');
+                window.location.replace('/login');
             }
         }, 350);
     }

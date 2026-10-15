@@ -125,37 +125,21 @@
                     <div class="dropdown">
                         <button class="nav-btn dropdown-toggle no-arrow" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
                             <i class="fa-regular fa-bell"></i>
-                            <span class="notification-badge"></span>
+                            <span class="notification-badge" id="notifBadge"></span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end py-2" aria-labelledby="notifDropdown" style="width: 320px;">
+                        <ul class="dropdown-menu dropdown-menu-end py-2" aria-labelledby="notifDropdown" style="width: 340px;">
                             <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
                                 <span class="fw-semibold">Notifications</span>
-                                <span class="badge rounded-pill" style="background-color: var(--primary); color: #fff; font-size: 11px;">2 New</span>
+                                <span class="badge rounded-pill" id="notifCountBadge" style="background-color: var(--primary); color: #fff; font-size: 11px;">0</span>
                             </li>
-                            <li>
-                                <a class="dropdown-item py-2 border-bottom" href="#" onclick="simulateNav('Mark Attendance')">
-                                    <div class="d-flex gap-2">
-                                        <div class="mt-1" style="color: var(--pending);"><i class="fa-solid fa-circle-exclamation"></i></div>
-                                        <div>
-                                            <p class="mb-0 text-wrap" style="font-size: 12.5px;">Pending attendance for <strong>SY Computer A</strong> is due.</p>
-                                            <span class="text-muted" style="font-size: 11px;">10 mins ago</span>
-                                        </div>
-                                    </div>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item py-2 border-bottom" href="#" onclick="simulateNav('Reports')">
-                                    <div class="d-flex gap-2">
-                                        <div class="mt-1" style="color: var(--present);"><i class="fa-solid fa-circle-check"></i></div>
-                                        <div>
-                                            <p class="mb-0 text-wrap" style="font-size: 12.5px;">Parent notifications sent for <strong>Operating Systems</strong>.</p>
-                                            <span class="text-muted" style="font-size: 11px;">1 hour ago</span>
-                                        </div>
-                                    </div>
-                                </a>
-                            </li>
-                            <li class="text-center pt-2">
-                                <a href="#" class="fw-medium" style="font-size: 12px; color: var(--primary);" onclick="triggerAction('All Notifications')">View All Notifications</a>
+                            <div id="notifDropdownItems">
+                                <li class="text-center py-3 text-muted" style="font-size: 12px;">
+                                    <i class="fa-regular fa-bell d-block mb-1" style="font-size: 1.2rem; opacity: 0.5;"></i>
+                                    Loading notifications...
+                                </li>
+                            </div>
+                            <li class="text-center pt-2 border-top">
+                                <a href="#" class="fw-medium" style="font-size: 12px; color: var(--primary);" onclick="simulateNav('Reports')">View All Reports</a>
                             </li>
                         </ul>
                     </div>
@@ -328,41 +312,9 @@
                                         <span>Weekly Attendance Trend</span>
                                         <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 10px;">Mon - Fri</span>
                                     </div>
-                                    <div class="weekly-trend-chart">
-                                        <div class="trend-column">
-                                            <div class="trend-percent">82%</div>
-                                            <div class="trend-bar-wrapper">
-                                                <div class="trend-bar-fill" style="height: 82%;"></div>
-                                            </div>
-                                            <div class="trend-label">Mon</div>
-                                        </div>
-                                        <div class="trend-column">
-                                            <div class="trend-percent">88%</div>
-                                            <div class="trend-bar-wrapper">
-                                                <div class="trend-bar-fill" style="height: 88%;"></div>
-                                            </div>
-                                            <div class="trend-label">Tue</div>
-                                        </div>
-                                        <div class="trend-column">
-                                            <div class="trend-percent">79%</div>
-                                            <div class="trend-bar-wrapper">
-                                                <div class="trend-bar-fill active" style="height: 79%;"></div>
-                                            </div>
-                                            <div class="trend-label">Today</div>
-                                        </div>
-                                        <div class="trend-column">
-                                            <div class="trend-percent">85%</div>
-                                            <div class="trend-bar-wrapper">
-                                                <div class="trend-bar-fill" style="height: 85%;"></div>
-                                            </div>
-                                            <div class="trend-label">Thu</div>
-                                        </div>
-                                        <div class="trend-column">
-                                            <div class="trend-percent">91%</div>
-                                            <div class="trend-bar-wrapper">
-                                                <div class="trend-bar-fill" style="height: 91%;"></div>
-                                            </div>
-                                            <div class="trend-label">Fri</div>
+                                    <div class="weekly-trend-chart" id="analyticsWeeklyTrend">
+                                        <div class="text-center w-100 py-3 text-muted" style="font-size: 11px;">
+                                            <i class="fa-solid fa-circle-notch fa-spin me-1"></i> Loading trend...
                                         </div>
                                     </div>
                                 </div>
@@ -371,25 +323,25 @@
                                 <div class="analytics-panel">
                                     <div class="analytics-panel-title">
                                         <span>Present vs Absent</span>
-                                        <span style="color: var(--present); font-size: 11px; font-weight: 600;">79.0% Avg</span>
+                                        <span style="color: var(--present); font-size: 11px; font-weight: 600;" id="analyticsPresentAbsentAvg">--% Avg</span>
                                     </div>
-                                    <div class="ratio-bar-container">
+                                    <div class="ratio-bar-container" id="analyticsRatioContainer">
                                         <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
-                                            <span>98 Students</span>
-                                            <span>26 Students</span>
+                                            <span id="analyticsTotalPresentText">0 Students</span>
+                                            <span id="analyticsTotalAbsentText">0 Students</span>
                                         </div>
                                         <div class="stacked-ratio-bar">
-                                            <div class="stacked-fill-present" style="width: 79%;"></div>
-                                            <div class="stacked-fill-absent" style="width: 21%;"></div>
+                                            <div class="stacked-fill-present" id="analyticsFillPresent" style="width: 0%;"></div>
+                                            <div class="stacked-fill-absent" id="analyticsFillAbsent" style="width: 0%;"></div>
                                         </div>
                                         <div class="ratio-legend">
                                             <div class="ratio-legend-item">
                                                 <span class="legend-dot present"></span>
-                                                <span>Present (79%)</span>
+                                                <span id="analyticsLegendPresent">Present (0%)</span>
                                             </div>
                                             <div class="ratio-legend-item">
                                                 <span class="legend-dot absent"></span>
-                                                <span>Absent (21%)</span>
+                                                <span id="analyticsLegendAbsent">Absent (0%)</span>
                                             </div>
                                         </div>
                                     </div>
@@ -399,35 +351,11 @@
                                 <div class="analytics-panel">
                                     <div class="analytics-panel-title">
                                         <span>Class-wise Attendance</span>
-                                        <span style="font-size: 11px; color: var(--text-secondary);">3 Batches</span>
+                                        <span style="font-size: 11px; color: var(--text-secondary);" id="analyticsClassCount">0 Batches</span>
                                     </div>
-                                    <div class="class-attendance-list">
-                                        <div class="class-attendance-item">
-                                            <div class="class-attendance-info">
-                                                <span class="class-name">SY Computer A</span>
-                                                <span class="class-rate">88.5%</span>
-                                            </div>
-                                            <div class="metric-progress-bar">
-                                                <div class="metric-progress-fill present" style="width: 88.5%;"></div>
-                                            </div>
-                                        </div>
-                                        <div class="class-attendance-item">
-                                            <div class="class-attendance-info">
-                                                <span class="class-name">TY IT B</span>
-                                                <span class="class-rate" style="color: var(--pending);">74.2%</span>
-                                            </div>
-                                            <div class="metric-progress-bar">
-                                                <div class="metric-progress-fill pending" style="width: 74.2%;"></div>
-                                            </div>
-                                        </div>
-                                        <div class="class-attendance-item">
-                                            <div class="class-attendance-info">
-                                                <span class="class-name">Final Year CS</span>
-                                                <span class="class-rate">81.0%</span>
-                                            </div>
-                                            <div class="metric-progress-bar">
-                                                <div class="metric-progress-fill primary" style="width: 81.0%;"></div>
-                                            </div>
+                                    <div class="class-attendance-list" id="analyticsClassList">
+                                        <div class="text-center w-100 py-3 text-muted" style="font-size: 11px;">
+                                            <i class="fa-solid fa-circle-notch fa-spin me-1"></i> Loading classes...
                                         </div>
                                     </div>
                                 </div>
@@ -802,20 +730,419 @@
             </div>
 
             <div id="section-Reports" class="spa-section">
+                <!-- Report Generator Controls -->
                 <div class="dashboard-card">
                     <div class="card-title">
-                        <span><i class="fa-solid fa-chart-column me-2"></i>Attendance Analytics & Reports</span>
+                        <span><i class="fa-solid fa-chart-column me-2"></i>Monthly Attendance Report Generator</span>
                     </div>
-                    <p class="text-muted mb-0">Generate monthly and semester attendance report summaries for export (PDF / Excel).</p>
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Month</label>
+                            <select class="form-select form-select-sm" id="reportMonth">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Year</label>
+                            <input type="number" class="form-control form-control-sm" id="reportYear" value="2026" min="2020" max="2030">
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Class (Optional)</label>
+                            <select class="form-select form-select-sm" id="reportClassFilter">
+                                <option value="">All Classes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 col-sm-6">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn-primary-custom" onclick="generateMonthlyReport()" style="font-size: 12px; padding: 0.35rem 0.85rem;" title="View interactive report on screen">
+                                    <i class="fa-solid fa-magnifying-glass-chart me-1"></i> Generate Report
+                                </button>
+                                <button class="btn-outline-custom" id="downloadPdfBtn" onclick="downloadReportPDF()" style="font-size: 12px; padding: 0.35rem 0.75rem;" title="Download complete report as PDF with executive summary and class totals">
+                                    <i class="fa-solid fa-file-pdf me-1" style="color: #dc2626;"></i> PDF
+                                </button>
+                                <button class="btn-outline-custom" id="downloadExcelBtn" onclick="downloadReportExcel()" style="font-size: 12px; padding: 0.35rem 0.75rem;" title="Download complete report as Excel with executive summary sheet and class sheets">
+                                    <i class="fa-solid fa-file-excel me-1" style="color: #059669;"></i> Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Output Area -->
+                <div id="reportOutputArea">
+                    <div class="dashboard-card">
+                        <div class="text-center py-4 text-muted">
+                            <i class="fa-solid fa-chart-column d-block mb-2" style="font-size: 2.5rem; opacity: 0.3;"></i>
+                            <p class="mb-1" style="font-size: 13px; font-weight: 500;">Select month, year and click "Generate Report"</p>
+                            <p class="mb-0" style="font-size: 11px;">Class-wise student attendance reports will appear here with download options.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <div id="section-Settings" class="spa-section">
-                <div class="dashboard-card">
+                <!-- Profile Settings -->
+                <div class="dashboard-card mb-3">
                     <div class="card-title">
-                        <span><i class="fa-solid fa-gear me-2"></i>Portal Settings</span>
+                        <span><i class="fa-solid fa-user-circle me-2"></i>Profile & Account Information</span>
+                        <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px;">Faculty Member</span>
                     </div>
-                    <p class="text-muted mb-0">Manage notification preferences, automatic parent WhatsApp alert thresholds, and academic term parameters.</p>
+                    <div class="row g-3">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Full Name</label>
+                            <input type="text" class="form-control form-control-sm" id="settingsFullName" readonly style="background-color: var(--bg-hover);">
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Email Address</label>
+                            <input type="email" class="form-control form-control-sm" id="settingsEmail" readonly style="background-color: var(--bg-hover);">
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Role</label>
+                            <input type="text" class="form-control form-control-sm" id="settingsRole" readonly style="background-color: var(--bg-hover);">
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Faculty / Employee ID</label>
+                            <input type="text" class="form-control form-control-sm" id="settingsTeacherId" readonly style="background-color: var(--bg-hover);">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Security (Change Password) -->
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <span><i class="fa-solid fa-shield-halved me-2"></i>Account Security & Credentials</span>
+                    </div>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Current Password</label>
+                            <input type="password" class="form-control form-control-sm" id="settingsCurrentPassword" placeholder="Enter current password">
+                        </div>
+                        <div class="col-md-4 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">New Password</label>
+                            <input type="password" class="form-control form-control-sm" id="settingsNewPassword" placeholder="Minimum 6 characters">
+                        </div>
+                        <div class="col-md-4 col-sm-12">
+                            <button class="btn-outline-custom w-100" onclick="changeTeacherPassword()" style="font-size: 12px; padding: 0.45rem 1rem;">
+                                <i class="fa-solid fa-key me-1"></i> Update Password
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Automation & Marking Policy -->
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <span><i class="fa-solid fa-sliders me-2"></i>Attendance Automation & Policy Rules</span>
+                        <span class="badge" style="background-color: var(--present-light); color: var(--present); font-size: 11px;">Marking Engine</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Default State When Marking</label>
+                            <select class="form-select form-select-sm" id="settingsDefaultMarkStatus">
+                                <option value="present" selected>All Present (Fast 1-Click)</option>
+                                <option value="unmarked">All Unmarked (Manual Entry)</option>
+                            </select>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Initial status when opening Mark Attendance</div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Late Attendance Weightage</label>
+                            <select class="form-select form-select-sm" id="settingsLateWeightage">
+                                <option value="1.0" selected>Counts as Present (100%)</option>
+                                <option value="0.5">Counts as Half-Day (50%)</option>
+                                <option value="0.0">Counts as Absent (0%)</option>
+                            </select>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Calculation impact for "Late" mark</div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Late Entry Grace Period</label>
+                            <select class="form-select form-select-sm" id="settingsLateGracePeriod">
+                                <option value="0">No Grace (Marked Late Immediately)</option>
+                                <option value="5">5 Minutes</option>
+                                <option value="10" selected>10 Minutes</option>
+                                <option value="15">15 Minutes</option>
+                            </select>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Buffer before marking a student Late</div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Attendance Edit Lock Window</label>
+                            <select class="form-select form-select-sm" id="settingsEditLock">
+                                <option value="never" selected>Always Editable (No Lock)</option>
+                                <option value="24h">Lock After 24 Hours</option>
+                                <option value="7d">Lock After 7 Days</option>
+                            </select>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Prevents historical data alterations</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notification & Parent Alerts Preferences -->
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <span><i class="fa-solid fa-bell me-2"></i>Parent Communication & Alert Preferences</span>
+                    </div>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background-color: var(--bg-hover);">
+                            <div>
+                                <div class="fw-medium" style="font-size: 13px;"><i class="fa-brands fa-whatsapp text-success me-2"></i>WhatsApp Attendance Alerts</div>
+                                <div class="text-muted" style="font-size: 11px;">Dispatch instant WhatsApp notification to parents upon marking attendance</div>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="settingsWhatsappEnabled" checked style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background-color: var(--bg-hover);">
+                            <div>
+                                <div class="fw-medium" style="font-size: 13px;"><i class="fa-solid fa-user-xmark text-danger me-2"></i>Alert Only on Absent or Late</div>
+                                <div class="text-muted" style="font-size: 11px;">Reduce message spam by only alerting parents when a student is absent or tardy</div>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="settingsAbsentOnlyAlert" style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background-color: var(--bg-hover);">
+                            <div>
+                                <div class="fw-medium" style="font-size: 13px;"><i class="fa-solid fa-message text-primary me-2"></i>SMS Fallback Notification</div>
+                                <div class="text-muted" style="font-size: 11px;">Send standard SMS if WhatsApp message cannot be delivered</div>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="settingsSmsFallback" style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                            </div>
+                        </div>
+                        <div class="p-2 rounded" style="background-color: var(--bg-hover);">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <div class="fw-medium" style="font-size: 13px;"><i class="fa-solid fa-chart-line text-warning me-2"></i>Low Attendance Defaulter Threshold</div>
+                                    <div class="text-muted" style="font-size: 11px;">Students falling below this threshold are flagged as Defaulters across all reports and the ERP</div>
+                                </div>
+                                <span class="badge" id="thresholdValue" style="background-color: var(--pending-light); color: var(--pending); font-size: 12px; font-weight: 600;">75%</span>
+                            </div>
+                            <input type="range" class="form-range" id="settingsThreshold" min="50" max="95" step="5" value="75" style="accent-color: var(--primary);">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Chatbot & Voice Assistant Preferences -->
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <span><i class="fa-solid fa-robot me-2"></i>AI Assistant & Voice Preferences</span>
+                        <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px;">Smart Assistant</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Speech-to-Text Language</label>
+                            <select class="form-select form-select-sm" id="settingsVoiceLang">
+                                <option value="en-IN" selected>English (India) — en-IN</option>
+                                <option value="en-US">English (US) — en-US</option>
+                                <option value="hi-IN">Hindi (India) — hi-IN</option>
+                            </select>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Language for microphone dictation in chatbot</div>
+                        </div>
+                        <div class="col-md-4 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Text-to-Speech (Voice Output)</label>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background-color: var(--bg-hover); height: 38px;">
+                                <span style="font-size: 12px;">Speak Responses Aloud</span>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="settingsChatbotSpeech" style="cursor: pointer;">
+                                </div>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Audibly reads AI chatbot replies</div>
+                        </div>
+                        <div class="col-md-4 col-sm-12">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Chatbot Audio Chimes</label>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background-color: var(--bg-hover); height: 38px;">
+                                <span style="font-size: 12px;">Sound on Send / Receive</span>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="settingsChatbotSound" checked style="cursor: pointer;">
+                                </div>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Plays soft confirmation chimes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Reports & Export Preferences -->
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <span><i class="fa-solid fa-file-invoice me-2"></i>Report & Export Preferences</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Default Export Format</label>
+                            <select class="form-select form-select-sm" id="settingsDefaultExportFormat">
+                                <option value="pdf" selected>PDF Document (.pdf)</option>
+                                <option value="excel">Excel Spreadsheet (.xlsx)</option>
+                            </select>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Preferred format for quick reports</div>
+                        </div>
+                        <div class="col-md-4 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Defaulter Color Highlighting</label>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background-color: var(--bg-hover); height: 38px;">
+                                <span style="font-size: 12px;">Highlight Defaulters in Red</span>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="settingsHighlightDefaulters" checked style="cursor: pointer;">
+                                </div>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Emphasizes low attendance rows</div>
+                        </div>
+                        <div class="col-md-4 col-sm-12">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Official Signature Lines</label>
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background-color: var(--bg-hover); height: 38px;">
+                                <span style="font-size: 12px;">Include Seal & Signatures</span>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="settingsIncludeSignatures" checked style="cursor: pointer;">
+                                </div>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size: 10.5px;">Teacher & HOD sign block on PDFs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Display & Session Preferences -->
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <span><i class="fa-solid fa-display me-2"></i>Display & Session Preferences</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Theme Mode</label>
+                            <div class="d-flex align-items-center gap-2 p-2 rounded" style="background-color: var(--bg-hover);">
+                                <i class="fa-solid fa-moon" id="settingsThemeIcon"></i>
+                                <span style="font-size: 13px;" id="settingsThemeLabel">Light Mode</span>
+                                <button class="btn-outline-custom ms-auto" onclick="document.getElementById('themeToggle').click()" style="font-size: 11px; padding: 0.2rem 0.5rem;">Toggle</button>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Default Page on Login</label>
+                            <select class="form-select form-select-sm" id="settingsDefaultPage">
+                                <option value="Dashboard">Dashboard Overview</option>
+                                <option value="Mark Attendance">Mark Attendance</option>
+                                <option value="My Classes">My Classes</option>
+                                <option value="Attendance History">Attendance History</option>
+                                <option value="Reports">Monthly Reports</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Table Records Per Page</label>
+                            <select class="form-select form-select-sm" id="settingsRecordsPerPage">
+                                <option value="10">10 Records</option>
+                                <option value="25" selected>25 Records</option>
+                                <option value="50">50 Records</option>
+                                <option value="100">100 Records</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Session Inactivity Timeout</label>
+                            <select class="form-select form-select-sm" id="settingsSessionTimeout">
+                                <option value="15">15 Minutes</option>
+                                <option value="30" selected>30 Minutes</option>
+                                <option value="60">1 Hour</option>
+                                <option value="0">Never (Stay Logged In)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic Configuration -->
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <span><i class="fa-solid fa-building-columns me-2"></i>Academic Institution Configuration</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Academic Year</label>
+                            <input type="text" class="form-control form-control-sm" id="settingsAcademicYear" value="2026-27" placeholder="e.g. 2026-27">
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Semester Term</label>
+                            <select class="form-select form-select-sm" id="settingsSemesterTerm">
+                                <option value="odd" selected>Odd Semester (Sem I / III / V / VII)</option>
+                                <option value="even">Even Semester (Sem II / IV / VI / VIII)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Department</label>
+                            <input type="text" class="form-control form-control-sm" id="settingsDepartment" value="Computer Engineering" placeholder="e.g. Computer Engineering">
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Institution Name</label>
+                            <input type="text" class="form-control form-control-sm" id="settingsInstitution" value="College of Engineering" placeholder="e.g. College of Engineering">
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- Data Management & Backups -->
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <span><i class="fa-solid fa-database me-2"></i>Data Management & System Maintenance</span>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn-outline-custom" onclick="exportAttendanceCSV()" style="font-size: 12px;">
+                            <i class="fa-solid fa-file-csv me-1 text-success"></i> Export Attendance Data (CSV)
+                        </button>
+                        <button class="btn-outline-custom" onclick="exportSettingsBackup()" style="font-size: 12px;">
+                            <i class="fa-solid fa-download me-1 text-primary"></i> Backup Settings (JSON)
+                        </button>
+                        <button class="btn-outline-custom" onclick="document.getElementById('importSettingsFile').click()" style="font-size: 12px;">
+                            <i class="fa-solid fa-upload me-1 text-info"></i> Restore Settings (JSON)
+                        </button>
+                        <input type="file" id="importSettingsFile" style="display: none;" accept=".json" onchange="importSettingsBackup(event)">
+                        <button class="btn-outline-custom" onclick="clearChatHistory()" style="font-size: 12px;">
+                            <i class="fa-solid fa-broom me-1 text-warning"></i> Clear Chatbot History
+                        </button>
+                        <button class="btn-outline-custom" onclick="clearLocalSettings()" style="font-size: 12px; color: var(--absent);">
+                            <i class="fa-solid fa-rotate-left me-1"></i> Reset Settings to Defaults
+                        </button>
+                    </div>
+                </div>
+
+                <!-- About & System Diagnostics -->
+                <div class="dashboard-card mb-3">
+                    <div class="card-title">
+                        <span><i class="fa-solid fa-circle-info me-2"></i>About & System Diagnostics</span>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <div class="p-2 rounded" style="background-color: var(--bg-hover); font-size: 12px;">
+                                <strong>Smart Attendance ERP</strong> v2.5 Enterprise<br>
+                                <span class="text-muted">High-Performance Academic Portal</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 rounded" style="background-color: var(--bg-hover); font-size: 12px;">
+                                <strong>Database Status:</strong> <span class="badge bg-success" style="font-size: 10px;">Connected (MySQL)</span><br>
+                                <span class="text-muted">ReportLab & OpenPyXL Active</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-2 rounded" style="background-color: var(--bg-hover); font-size: 12px;">
+                                <strong>Developed by</strong> Harshvardhan Pate<br>
+                                <span class="text-muted">&copy; 2026 All rights reserved</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Button Bar -->
+                <div class="d-flex justify-content-between align-items-center mt-3 mb-4">
+                    <span class="text-muted" style="font-size: 11px;">
+                        <i class="fa-solid fa-info-circle me-1"></i> Changes apply immediately across all modules
+                    </span>
+                    <button class="btn-primary-custom" onclick="saveSettings()" style="padding: 0.5rem 1.75rem; font-size: 13px;">
+                        <i class="fa-solid fa-check me-1"></i> Save All Preferences
+                    </button>
                 </div>
             </div>
 

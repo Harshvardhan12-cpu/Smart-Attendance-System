@@ -173,6 +173,29 @@ def extract_class_name(text):
 
 
 # =============================================================================
+# Roll Number Extraction
+# =============================================================================
+
+def extract_roll_number(text):
+    """
+    Extract a student roll number from natural language text.
+    Handles 'roll 12', 'roll no 4', 'roll number 25', 'r.no 5'.
+    """
+    patterns = [
+        r'\b(?:roll\s*(?:no\.?|number|#)?\s*[:\s]*)([A-Za-z0-9\-_]+)\b',
+        r'\br\.?\s*no\.?\s*[:\s]*([A-Za-z0-9\-_]+)\b',
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, text, re.IGNORECASE)
+        if m:
+            val = m.group(1).strip()
+            # Exclude non-roll terms
+            if val.lower() not in ['call', 'sheet', 'list', 'numbers', 'call', 'today', 'yesterday', 'summary']:
+                return val
+    return None
+
+
+# =============================================================================
 # Intent Classification
 # =============================================================================
 
@@ -216,12 +239,75 @@ def classify_intent(message, history=None):
                 params['show_details'] = True
                 return last_user_intent, params
 
+    # --- Today's schedule ---
+    if re.search(r'(schedule|timetable|what class|which class|my class|today.*class|class.*today)', msg):
+        if 'today' in msg or not re.search(r'(attend|absent|present|history)', msg):
+            return 'todays_schedule', params
+
+    # --- WhatsApp / Notification status ---
+    if re.search(r'(whatsapp|notification|alert|sms|message)\s*(status|log|sent|report|update)', msg):
+        return 'whatsapp_status', params
+    if re.search(r'(show|check|view)\s*(whatsapp|notification|alert)', msg):
+        return 'whatsapp_status', params
+
+    # --- Quick stats / Dashboard summary ---
+    if re.search(r'(my stats|my summary|dashboard|overview|quick stats|show stats|summary)', msg):
+        return 'quick_stats', params
+
+    # --- Subject-wise attendance ---
+    if re.search(r'(subject|course)\s*(wise|attendance|report)', msg):
+        # Try to extract subject name
+        sub_match = re.search(r'(?:for|of|in)\s+(.+?)(?:\s+subject|\s+course|\s*$)', msg, re.IGNORECASE)
+        if sub_match:
+            params['subject_name'] = sub_match.group(1).strip()
+        return 'subject_attendance', params
+
+    # --- Export / Download ---
+    if re.search(r'(export|download|pdf|excel|csv|report|generate.*report)', msg):
+        return 'export_info', params
+
+    # --- Navigation shortcuts ---
+    if re.search(r'^(?:navigate\s+to|open|go\s+to|take|mark)\s+(?:attendance|mark\s+attendance)', msg):
+        return 'nav_mark_attendance', params
+    if re.search(r'^(?:navigate\s+to|open|go\s+to|view)\s+reports?', msg):
+        return 'nav_reports', params
+    if re.search(r'^(?:navigate\s+to|open|go\s+to|view)\s+(?:my\s+)?classes?', msg):
+        return 'nav_classes', params
+    if re.search(r'^(?:navigate\s+to|open|go\s+to|view)\s+(?:history|attendance\s+history)', msg):
+        return 'nav_history', params
+    if re.search(r'^(?:navigate\s+to|open|go\s+to)\s+settings?', msg):
+        return 'nav_settings', params
+
+    # --- Pending attendance today ---
+    if re.search(r'(pending\s+attendance|pending\s+class|attendance\s+pending|classes\s+left|did\s+i\s+(?:take|mark)\s+attendance|attendance\s+not\s+marked)', msg):
+        return 'pending_attendance', params
+
+    # --- Next lecture / class ---
+    if re.search(r'(next\s+(?:class|lecture|period)|what(?:\'s|\s+is)\s+next|when\s+is\s+my\s+next)', msg):
+        return 'next_lecture', params
+
+    # --- Defaulters list ---
+    if re.search(r'(defaulter|defaulters|black\s*list)', msg):
+        threshold = extract_percentage(message) or 75.0
+        params['threshold'] = threshold
+        return 'defaulters_list', params
+
+    # --- Top attendance / star students ---
+    if re.search(r'(top\s+student|highest\s+attendance|best\s+attendance|100%\s+attendance|star\s+student|regular\s+student)', msg):
+        return 'top_attendance', params
+
+    # --- Weekly attendance summary ---
+    if re.search(r'(this\s+week|weekly\s+(?:summary|report|attendance)|how\s+was\s+(?:this\s+)?week)', msg):
+        return 'weekly_summary', params
+
     # --- Unrelated question detection ---
     attendance_keywords = [
         'absent', 'present', 'attendance', 'student', 'class', 'roll',
         'lecture', 'percentage', 'low', 'history', 'record', 'status',
         'who', 'how many', 'show', 'list', 'count', 'total', 'today',
-        'yesterday', 'month', 'week', 'frequent', 'below', 'above'
+        'yesterday', 'month', 'week', 'frequent', 'below', 'above',
+        'pending', 'left', 'defaulter', 'defaulters', 'top', 'best',
+        'next', 'open', 'go', 'navigate', 'mark', 'take'
     ]
     is_relevant = any(kw in msg for kw in attendance_keywords)
 
@@ -272,6 +358,16 @@ def classify_intent(message, history=None):
         if name:
             params['student_name'] = name
             return 'student_percentage', params
+
+    # --- Roll number lookup ---
+    roll_num = extract_roll_number(message)
+    if roll_num and not re.search(r'(how many|count|total)', msg):
+        params['roll_number'] = roll_num
+        class_name = extract_class_name(message)
+        if class_name:
+            params['class_name'] = class_name
+        params['date'] = parsed_date
+        return 'roll_lookup', params
 
     # --- Student-specific attendance ---
     name = extract_student_name(message)
@@ -597,6 +693,177 @@ def get_show_attendance(date, teacher_id):
     return execute_query(query, (date, teacher_id), fetchall=True) or []
 
 
+def get_todays_schedule(teacher_id):
+    """Get today's schedule for this teacher."""
+    day_name = datetime.now().strftime('%A')
+    query = """
+        SELECT t.timetable_id, t.start_time, t.end_time, t.room_number,
+               s.subject_name, s.subject_code, c.section_name
+        FROM timetables t
+        JOIN teacher_subjects ts ON t.teacher_subject_id = ts.teacher_subject_id
+        JOIN subjects s ON ts.subject_id = s.subject_id
+        JOIN classes c ON ts.class_id = c.class_id
+        WHERE ts.teacher_id = %s AND t.day_of_week = %s
+        ORDER BY t.start_time
+    """
+    records = execute_query(query, (teacher_id, day_name), fetchall=True) or []
+    for r in records:
+        if r.get('start_time') and hasattr(r['start_time'], 'total_seconds'):
+            total_secs = int(r['start_time'].total_seconds())
+            hours, remainder = divmod(total_secs, 3600)
+            minutes = remainder // 60
+            r['start_time'] = f"{hours:02d}:{minutes:02d}"
+        else:
+            r['start_time'] = str(r['start_time'])
+        if r.get('end_time') and hasattr(r['end_time'], 'total_seconds'):
+            total_secs = int(r['end_time'].total_seconds())
+            hours, remainder = divmod(total_secs, 3600)
+            minutes = remainder // 60
+            r['end_time'] = f"{hours:02d}:{minutes:02d}"
+        else:
+            r['end_time'] = str(r['end_time'])
+    return records
+
+
+def get_whatsapp_status(teacher_id):
+    """Get recent WhatsApp notification stats."""
+    query = """
+        SELECT w.status, COUNT(*) as count
+        FROM whatsapp_logs w
+        JOIN students s ON w.student_id = s.student_id
+        JOIN classes c ON s.class_id = c.class_id
+        JOIN teacher_subjects ts ON c.class_id = ts.class_id
+        WHERE ts.teacher_id = %s
+        GROUP BY w.status
+    """
+    return execute_query(query, (teacher_id,), fetchall=True) or []
+
+
+def get_subject_attendance(subject_name, teacher_id):
+    """Get attendance stats for a specific subject."""
+    query = """
+        SELECT s.roll_number, s.full_name, c.section_name,
+               COUNT(a.attendance_id) as total,
+               SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count,
+               ROUND(IFNULL(SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) / NULLIF(COUNT(a.attendance_id), 0) * 100, 0), 1) as percentage
+        FROM attendance a
+        JOIN students s ON a.student_id = s.student_id
+        JOIN classes c ON s.class_id = c.class_id
+        JOIN timetables t ON a.timetable_id = t.timetable_id
+        JOIN teacher_subjects ts ON t.teacher_subject_id = ts.teacher_subject_id
+        JOIN subjects sub ON ts.subject_id = sub.subject_id
+        WHERE ts.teacher_id = %s AND sub.subject_name LIKE %s AND s.is_active = 1
+        GROUP BY s.student_id, s.roll_number, s.full_name, c.section_name
+        ORDER BY c.section_name, CAST(s.roll_number AS UNSIGNED)
+    """
+    return execute_query(query, (teacher_id, f'%{subject_name}%'), fetchall=True) or []
+
+
+def get_pending_attendance_today(teacher_id):
+    """Find today's classes where attendance has not yet been taken."""
+    today = datetime.now().date()
+    today_str = today.strftime('%Y-%m-%d')
+    day_name = datetime.now().strftime('%A')
+    query = """
+        SELECT t.timetable_id, s.subject_name, c.section_name,
+               t.start_time, t.end_time, t.room_number
+        FROM timetables t
+        JOIN teacher_subjects ts ON t.teacher_subject_id = ts.teacher_subject_id
+        JOIN subjects s ON ts.subject_id = s.subject_id
+        JOIN classes c ON ts.class_id = c.class_id
+        WHERE ts.teacher_id = %s AND t.day_of_week = %s
+          AND t.timetable_id NOT IN (
+              SELECT DISTINCT timetable_id FROM attendance WHERE attendance_date = %s
+          )
+        ORDER BY t.start_time
+    """
+    records = execute_query(query, (teacher_id, day_name, today_str), fetchall=True) or []
+    for r in records:
+        r['start_time'] = str(r.get('start_time', ''))
+        r['end_time'] = str(r.get('end_time', ''))
+    return records
+
+
+def get_next_class_today(teacher_id):
+    """Find the next upcoming class for today based on current time."""
+    records = get_todays_schedule(teacher_id)
+    if not records:
+        return None
+    now_str = datetime.now().strftime('%H:%M:%S')
+    for r in records:
+        if str(r.get('end_time', '')) >= now_str:
+            return r
+    return None
+
+
+def get_student_by_roll(roll_number, teacher_id, class_name=None):
+    """Find a student by roll number within the teacher's classes."""
+    if class_name:
+        query = """
+            SELECT DISTINCT s.student_id, s.roll_number, s.full_name, s.email, c.section_name, c.class_id
+            FROM students s
+            JOIN classes c ON s.class_id = c.class_id
+            JOIN teacher_subjects ts ON c.class_id = ts.class_id
+            WHERE ts.teacher_id = %s AND s.roll_number = %s AND c.section_name LIKE %s AND s.is_active = 1
+        """
+        return execute_query(query, (teacher_id, str(roll_number), f'%{class_name}%'), fetchall=True) or []
+    else:
+        query = """
+            SELECT DISTINCT s.student_id, s.roll_number, s.full_name, s.email, c.section_name, c.class_id
+            FROM students s
+            JOIN classes c ON s.class_id = c.class_id
+            JOIN teacher_subjects ts ON c.class_id = ts.class_id
+            WHERE ts.teacher_id = %s AND s.roll_number = %s AND s.is_active = 1
+        """
+        return execute_query(query, (teacher_id, str(roll_number)), fetchall=True) or []
+
+
+def get_top_students(teacher_id, limit=10):
+    """Get students with the highest attendance percentage across this teacher's classes."""
+    query = """
+        SELECT s.roll_number, s.full_name, c.section_name,
+               COUNT(*) as total_lectures,
+               SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count,
+               ROUND(SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) / COUNT(*) * 100, 1) as percentage
+        FROM attendance a
+        JOIN students s ON a.student_id = s.student_id
+        JOIN classes c ON s.class_id = c.class_id
+        JOIN timetables t ON a.timetable_id = t.timetable_id
+        JOIN teacher_subjects ts ON t.teacher_subject_id = ts.teacher_subject_id
+        WHERE ts.teacher_id = %s AND s.is_active = 1
+        GROUP BY s.student_id, s.roll_number, s.full_name, c.section_name
+        HAVING total_lectures >= 1
+        ORDER BY percentage DESC, total_lectures DESC
+        LIMIT %s
+    """
+    return execute_query(query, (teacher_id, limit), fetchall=True) or []
+
+
+def get_weekly_attendance_summary(teacher_id):
+    """Summarize attendance for the past 7 days."""
+    today = datetime.now().date()
+    week_ago = today - timedelta(days=6)
+    query = """
+        SELECT a.attendance_date,
+               COUNT(DISTINCT CASE WHEN a.status = 'present' THEN a.attendance_id END) as present_count,
+               COUNT(DISTINCT CASE WHEN a.status = 'absent' THEN a.attendance_id END) as absent_count,
+               COUNT(DISTINCT a.attendance_id) as total
+        FROM attendance a
+        JOIN timetables t ON a.timetable_id = t.timetable_id
+        JOIN teacher_subjects ts ON t.teacher_subject_id = ts.teacher_subject_id
+        WHERE ts.teacher_id = %s
+          AND a.attendance_date >= %s
+          AND a.attendance_date <= %s
+        GROUP BY a.attendance_date
+        ORDER BY a.attendance_date DESC
+    """
+    records = execute_query(query, (teacher_id, week_ago.strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d')), fetchall=True) or []
+    for r in records:
+        if r.get('attendance_date'):
+            r['attendance_date'] = r['attendance_date'].strftime('%Y-%m-%d')
+    return records
+
+
 # =============================================================================
 # Response Formatting
 # =============================================================================
@@ -650,39 +917,237 @@ def build_response(intent, params, teacher_id):
     if intent == 'greeting':
         name = session.get('full_name', 'Professor')
         return {
-            'response': f"Hello, {name}! 👋 I'm your Attendance Assistant. You can ask me things like:\n\n"
+            'response': f"Hello, {name}! 👋 I'm your Smart Attendance Assistant.\n\n"
+                        "You can speak or type queries such as:\n"
                         "• \"Who is absent today?\"\n"
-                        "• \"Show Varad's attendance\"\n"
-                        "• \"Which students have attendance below 75%?\"\n"
-                        "• \"Show attendance for yesterday\"\n\n"
-                        "How can I help you?",
-            'type': 'text'
+                        "• \"What classes have pending attendance?\"\n"
+                        "• \"What is my next lecture?\"\n"
+                        "• \"Check Roll 12 attendance\"\n"
+                        "• \"Show defaulters list (<75%)\"\n\n"
+                        "How can I help you today?",
+            'type': 'text',
+            'actions': [
+                {'label': 'Pending Attendance', 'query': 'What classes have pending attendance?', 'icon': 'fa-solid fa-clock'},
+                {'label': "Today's Schedule", 'query': 'What classes do I have today?', 'icon': 'fa-solid fa-calendar-day'},
+                {'label': 'Who is Absent?', 'query': 'Who is absent today?', 'icon': 'fa-solid fa-user-xmark'}
+            ]
         }
 
     # ---- Help ----
     if intent == 'help':
         return {
-            'response': "Here's what I can help you with:\n\n"
-                        "📋 **Attendance Queries**\n"
+            'response': "Here are the queries and commands you can ask me:\n\n"
+                        "📋 **Live Attendance & Workflows**\n"
                         "• \"Who is absent today?\"\n"
-                        "• \"Who is present today?\"\n"
-                        "• \"How many students are absent today?\"\n"
-                        "• \"Show today's attendance\"\n\n"
-                        "📅 **Date-specific**\n"
-                        "• \"Show attendance for yesterday\"\n"
-                        "• \"Show attendance for 5 October 2026\"\n\n"
-                        "👤 **Student-specific**\n"
-                        "• \"Show Rahul's attendance\"\n"
-                        "• \"Was Rahul absent yesterday?\"\n"
-                        "• \"Show Rahul's attendance history\"\n\n"
-                        "📊 **Analytics**\n"
-                        "• \"Who has attendance below 75%?\"\n"
-                        "• \"Who has the lowest attendance?\"\n"
-                        "• \"Which students were absent most frequently?\"\n\n"
-                        "🏫 **Class-wise**\n"
-                        "• \"Show class-wise attendance\"\n"
-                        "• \"Show attendance for SY Computer A\"",
-            'type': 'text'
+                        "• \"What classes have pending attendance?\"\n"
+                        "• \"What is my next lecture?\"\n"
+                        "• \"Show today's attendance summary\"\n\n"
+                        "🎯 **Quick Lookups**\n"
+                        "• \"Check Roll 15\" or \"Roll 12 attendance\"\n"
+                        "• \"Show Rahul's attendance history\"\n"
+                        "• \"Was Sneha absent yesterday?\"\n\n"
+                        "📊 **Defaulters & Analytics**\n"
+                        "• \"Show defaulters list\" (or \"below 75%\")\n"
+                        "• \"Who are top attendees?\"\n"
+                        "• \"Weekly attendance summary\"\n"
+                        "• \"Most frequently absent students\"\n\n"
+                        "🚀 **Navigation Shortcuts**\n"
+                        "• \"Mark attendance\", \"Open reports\", \"View my classes\"\n\n"
+                        "🎙️ **Tip:** You can also tap the microphone icon to speak your queries!",
+            'type': 'text',
+            'actions': [
+                {'label': 'Defaulters List', 'query': 'Show defaulters list', 'icon': 'fa-solid fa-triangle-exclamation'},
+                {'label': 'Pending Attendance', 'query': 'Pending attendance today', 'icon': 'fa-solid fa-clipboard-question'},
+                {'label': 'Weekly Summary', 'query': 'Weekly attendance summary', 'icon': 'fa-solid fa-chart-line'}
+            ]
+        }
+
+    # ---- Navigation Shortcuts ----
+    if intent == 'nav_mark_attendance':
+        return {
+            'response': "Opening **Mark Attendance**! You can select a lecture and submit student records.",
+            'type': 'text',
+            'actions': [{'label': 'Open Mark Attendance', 'nav': 'Mark Attendance', 'icon': 'fa-solid fa-clipboard-check'}]
+        }
+    if intent == 'nav_reports':
+        return {
+            'response': "Navigating to **Reports**! You can view monthly analytics and download PDF/Excel reports.",
+            'type': 'text',
+            'actions': [{'label': 'Open Reports', 'nav': 'Reports', 'icon': 'fa-solid fa-chart-pie'}]
+        }
+    if intent == 'nav_classes':
+        return {
+            'response': "Opening **My Classes**! Here are your assigned divisions and subjects.",
+            'type': 'text',
+            'actions': [{'label': 'View My Classes', 'nav': 'My Classes', 'icon': 'fa-solid fa-chalkboard-user'}]
+        }
+    if intent == 'nav_history':
+        return {
+            'response': "Opening **Attendance History** to inspect and edit past attendance sheets.",
+            'type': 'text',
+            'actions': [{'label': 'Open History', 'nav': 'Attendance History', 'icon': 'fa-solid fa-clock-rotate-left'}]
+        }
+    if intent == 'nav_settings':
+        return {
+            'response': "Opening **Settings** to customize notification triggers, defaults, and thresholds.",
+            'type': 'text',
+            'actions': [{'label': 'Open Settings', 'nav': 'Settings', 'icon': 'fa-solid fa-sliders'}]
+        }
+
+    # ---- Pending Attendance Today ----
+    if intent == 'pending_attendance':
+        pending = get_pending_attendance_today(teacher_id)
+        if not pending:
+            return {
+                'response': "🎉 **All caught up!** Attendance has already been recorded for all scheduled classes today.",
+                'type': 'text',
+                'actions': [
+                    {'label': "Today's Schedule", 'query': 'What classes do I have today?', 'icon': 'fa-solid fa-calendar-day'},
+                    {'label': 'Open History', 'nav': 'Attendance History', 'icon': 'fa-solid fa-clock-rotate-left'}
+                ]
+            }
+
+        response = f"⚠️ You have **{len(pending)}** lecture(s) pending attendance today:\n\n"
+        headers = ['Time', 'Subject', 'Class', 'Room']
+        rows = [[f"{p['start_time']} - {p['end_time']}", p['subject_name'], p['section_name'], p.get('room_number', 'N/A')] for p in pending]
+        response += build_table_html(headers, rows)
+        return {
+            'response': response,
+            'type': 'html',
+            '_intent': intent,
+            '_params': params,
+            'actions': [
+                {'label': 'Mark Attendance Now', 'nav': 'Mark Attendance', 'icon': 'fa-solid fa-clipboard-check'}
+            ]
+        }
+
+    # ---- Next Lecture Today ----
+    if intent == 'next_lecture':
+        next_c = get_next_class_today(teacher_id)
+        if not next_c:
+            return {
+                'response': "You have no upcoming lectures scheduled for the remainder of today. You're done for the day! 🎉",
+                'type': 'text',
+                'actions': [
+                    {'label': 'View Dashboard', 'nav': 'Dashboard', 'icon': 'fa-solid fa-house'}
+                ]
+            }
+
+        response = f"🕒 **Next Lecture Today:**\n\n"
+        response += f"📖 **Subject:** {next_c['subject_name']} ({next_c.get('subject_code', '')})\n"
+        response += f"🏫 **Class:** {next_c['section_name']}\n"
+        response += f"⏰ **Time:** {next_c['start_time']} - {next_c['end_time']}\n"
+        response += f"📍 **Room:** {next_c.get('room_number', 'N/A')}"
+        return {
+            'response': response,
+            'type': 'text',
+            '_intent': intent,
+            '_params': params,
+            'actions': [
+                {'label': 'Mark Attendance', 'nav': 'Mark Attendance', 'icon': 'fa-solid fa-clipboard-check'}
+            ]
+        }
+
+    # ---- Defaulters List ----
+    if intent == 'defaulters_list':
+        threshold = params.get('threshold', 75.0)
+        students = get_low_attendance_students(threshold, teacher_id)
+        if not students:
+            return {
+                'response': f"✅ Excellent news! No students currently have attendance below {threshold}%.",
+                'type': 'text'
+            }
+
+        response = f"⚠️ **Defaulters List (Attendance < {threshold}%):**\n\nFound **{len(students)}** defaulter student(s):\n\n"
+        headers = ['Roll No.', 'Student', 'Class', 'Attendance %']
+        rows = [[s['roll_number'], s['full_name'], s['section_name'], f"{s['percentage']}%"] for s in students]
+        response += build_table_html(headers, rows)
+        return {
+            'response': response,
+            'type': 'html',
+            '_intent': intent,
+            '_params': params,
+            'actions': [
+                {'label': 'Generate Reports', 'nav': 'Reports', 'icon': 'fa-solid fa-chart-pie'}
+            ]
+        }
+
+    # ---- Top Attendance / Star Students ----
+    if intent == 'top_attendance':
+        students = get_top_students(teacher_id, limit=10)
+        if not students:
+            return {'response': "No attendance data available yet to determine top students.", 'type': 'text'}
+
+        response = f"🌟 **Top Attendees (Highest Attendance):**\n\n"
+        headers = ['#', 'Roll No.', 'Student', 'Class', 'Attendance %']
+        rows = [[i + 1, s['roll_number'], s['full_name'], s['section_name'], f"{s['percentage']}%"] for i, s in enumerate(students)]
+        response += build_table_html(headers, rows)
+        return {'response': response, 'type': 'html', '_intent': intent, '_params': params}
+
+    # ---- Weekly Attendance Summary ----
+    if intent == 'weekly_summary':
+        records = get_weekly_attendance_summary(teacher_id)
+        if not records:
+            return {'response': "No attendance records found for the past 7 days.", 'type': 'text'}
+
+        total_present = sum(r['present_count'] for r in records)
+        total_absent = sum(r['absent_count'] for r in records)
+        total_all = total_present + total_absent
+        avg_rate = round((total_present / total_all * 100), 1) if total_all > 0 else 0
+
+        response = f"📈 **7-Day Weekly Attendance Summary:**\n\n"
+        response += f"📊 Overall Rate: **{avg_rate}%** | ✅ Present: **{total_present}** | ❌ Absent: **{total_absent}**\n\n"
+        headers = ['Date', 'Present', 'Absent', 'Total Records']
+        rows = [[format_date_display(r['attendance_date']), r['present_count'], r['absent_count'], r['total']] for r in records]
+        response += build_table_html(headers, rows)
+        return {
+            'response': response,
+            'type': 'html',
+            '_intent': intent,
+            '_params': params,
+            'actions': [
+                {'label': 'View Monthly Reports', 'nav': 'Reports', 'icon': 'fa-solid fa-chart-pie'}
+            ]
+        }
+
+    # ---- Roll Number Lookup ----
+    if intent == 'roll_lookup':
+        roll_num = params.get('roll_number')
+        students = get_student_by_roll(roll_num, teacher_id, params.get('class_name'))
+        if not students:
+            return {'response': f"Could not find a student with Roll Number **{roll_num}** in your classes.", 'type': 'text'}
+
+        student = students[0]
+        pct_data = get_student_percentage(student['student_id'], teacher_id)
+        total = pct_data['total'] if pct_data else 0
+        present = pct_data['present'] if pct_data else 0
+        absent = pct_data['absent'] if pct_data else 0
+        pct = round((present / total * 100), 1) if total > 0 else 0
+
+        pct_color_emoji = '🟢' if pct >= 75 else ('🟡' if pct >= 50 else '🔴')
+
+        response = f"👤 **Student Details (Roll No. {student['roll_number']}):**\n\n"
+        response += f"• **Name:** {student['full_name']}\n"
+        response += f"• **Class:** {student['section_name']}\n"
+        if student.get('email'):
+            response += f"• **Email:** {student['email']}\n"
+        response += f"• **Attendance:** {pct_color_emoji} **{pct}%** ({present}/{total} present, {absent} absent)\n\n"
+
+        recent_records = get_student_attendance_records(student['student_id'], teacher_id, limit=5)
+        if recent_records:
+            response += "_Recent 5 attendance records:_\n\n"
+            headers = ['Date', 'Subject', 'Status']
+            rows = [[r['attendance_date'], r['subject_name'], r['status']] for r in recent_records]
+            response += build_table_html(headers, rows)
+
+        return {
+            'response': response,
+            'type': 'html',
+            '_intent': intent,
+            '_params': params,
+            'actions': [
+                {'label': 'Full History', 'query': f"Show {student['full_name']}'s attendance history", 'icon': 'fa-solid fa-clock-rotate-left'}
+            ]
         }
 
     # ---- Thanks ----
@@ -725,7 +1190,16 @@ def build_response(intent, params, teacher_id):
         rows = [[s['roll_number'], s['full_name'], s['section_name'], s['status']] for s in students]
         response += build_table_html(headers, rows)
 
-        return {'response': response, 'type': 'html', '_intent': intent, '_params': params}
+        return {
+            'response': response,
+            'type': 'html',
+            '_intent': intent,
+            '_params': params,
+            'actions': [
+                {'label': 'WhatsApp Status', 'query': 'Show WhatsApp notification status', 'icon': 'fa-brands fa-whatsapp'},
+                {'label': 'Present Students', 'query': f'Who is present {date}?', 'icon': 'fa-solid fa-user-check'}
+            ]
+        }
 
     # ---- Present students ----
     if intent == 'present_students':
@@ -988,6 +1462,106 @@ def build_response(intent, params, teacher_id):
         response += build_table_html(headers, rows)
 
         return {'response': response, 'type': 'html', '_intent': intent, '_params': params}
+
+    # ---- Today's schedule ----
+    if intent == 'todays_schedule':
+        records = get_todays_schedule(teacher_id)
+        day_name = datetime.now().strftime('%A')
+        if not records:
+            return {'response': f"You have no classes scheduled for today ({day_name}). 🎉", 'type': 'text'}
+
+        response = f"**Your schedule for today ({day_name}):** 📅\n\n"
+        headers = ['Time', 'Subject', 'Class', 'Room']
+        rows = [[f"{r['start_time']} - {r['end_time']}", r['subject_name'], r['section_name'], r.get('room_number', 'N/A')] for r in records]
+        response += build_table_html(headers, rows)
+        response += f"\n\n📌 Total: **{len(records)}** lecture(s) today."
+        return {
+            'response': response,
+            'type': 'html',
+            '_intent': intent,
+            '_params': params,
+            'actions': [
+                {'label': 'Mark Attendance', 'nav': 'Mark Attendance', 'icon': 'fa-solid fa-clipboard-check'},
+                {'label': 'Pending Attendance', 'query': 'Pending attendance today', 'icon': 'fa-solid fa-clock'}
+            ]
+        }
+
+    # ---- WhatsApp / Notification status ----
+    if intent == 'whatsapp_status':
+        stats = get_whatsapp_status(teacher_id)
+        if not stats:
+            return {'response': "No WhatsApp notification logs found. Notifications are sent automatically when you mark attendance. 📱", 'type': 'text'}
+
+        response = "**WhatsApp Notification Status:** 📱\n\n"
+        total = 0
+        for s in stats:
+            count = s['count']
+            total += count
+            if s['status'] == 'sent':
+                response += f"✅ **Sent:** {count} message(s)\n"
+            elif s['status'] == 'failed':
+                response += f"❌ **Failed:** {count} message(s)\n"
+            elif s['status'] == 'pending':
+                response += f"⏳ **Pending:** {count} message(s)\n"
+        response += f"\n📊 Total notifications logged: **{total}**"
+        return {'response': response, 'type': 'text', '_intent': intent, '_params': params}
+
+    # ---- Quick stats ----
+    if intent == 'quick_stats':
+        total_result = get_total_students(teacher_id)
+        total_students = total_result['total'] if total_result else 0
+        classes = get_teacher_classes(teacher_id)
+
+        today = datetime.now().date().strftime('%Y-%m-%d')
+        count_result = get_attendance_count(today, teacher_id)
+        present = count_result.get('present_count', 0) if count_result else 0
+        absent = count_result.get('absent_count', 0) if count_result else 0
+        total_marked = (count_result.get('total', 0) if count_result else 0)
+
+        monthly = get_monthly_absent_count(teacher_id)
+        monthly_absent = monthly['absent_count'] if monthly else 0
+
+        response = f"**📊 Your Quick Summary:**\n\n"
+        response += f"👥 **Students:** {total_students} across {len(classes)} class(es)\n"
+        response += f"📅 **Today:** {present} present, {absent} absent ({total_marked} total records)\n"
+        response += f"📈 **This Month:** {monthly_absent} absence record(s) logged\n\n"
+
+        if classes:
+            response += "**Your Classes:** " + ', '.join([c['section_name'] for c in classes])
+
+        return {'response': response, 'type': 'text', '_intent': intent, '_params': params}
+
+    # ---- Subject attendance ----
+    if intent == 'subject_attendance':
+        subject_name = params.get('subject_name')
+        if not subject_name:
+            return {'response': "Which subject's attendance would you like to see? Please specify the subject name.", 'type': 'text'}
+
+        records = get_subject_attendance(subject_name, teacher_id)
+        if not records:
+            return {'response': f"No attendance records found for subject \"{subject_name}\".", 'type': 'text'}
+
+        response = f"**Attendance for {subject_name}:**\n\n"
+        headers = ['Roll No.', 'Student', 'Class', 'Present', 'Total', 'Attendance %']
+        rows = [[r['roll_number'], r['full_name'], r['section_name'], r['present_count'], r['total'], f"{float(r['percentage'])}%"] for r in records]
+        response += build_table_html(headers, rows)
+        return {'response': response, 'type': 'html', '_intent': intent, '_params': params}
+
+    # ---- Export info ----
+    if intent == 'export_info':
+        return {
+            'response': "To download reports, go to the **Reports** section in the sidebar! 📊\n\n"
+                        "There you can:\n"
+                        "• Generate **monthly class-wise** attendance reports\n"
+                        "• Download in **PDF** format with professional styling\n"
+                        "• Download in **Excel** format with separate sheets per class\n"
+                        "• Filter by specific class or view all classes\n\n"
+                        "_Navigate to Reports → Select Month & Year → Generate → Download!_",
+            'type': 'text',
+            'actions': [
+                {'label': 'Open Reports Now', 'nav': 'Reports', 'icon': 'fa-solid fa-file-arrow-down'}
+            ]
+        }
 
     # Fallback
     return {

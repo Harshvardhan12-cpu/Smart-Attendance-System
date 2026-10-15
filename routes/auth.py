@@ -171,6 +171,35 @@ def current_user():
         'teacher_id': session.get('teacher_id')
     }), 200
 
+@auth_bp.route('/change-password', methods=['POST'])
+def change_password():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.json or {}
+    current_password = (data.get('current_password') or data.get('currentPassword') or '').strip()
+    new_password = (data.get('new_password') or data.get('newPassword') or '').strip()
+
+    if not current_password or not new_password:
+        return jsonify({'error': 'Current password and new password are required'}), 400
+
+    if len(new_password) < 6:
+        return jsonify({'error': 'New password must be at least 6 characters long'}), 400
+
+    user_id = session.get('user_id')
+    user = execute_query("SELECT password_hash FROM users WHERE user_id = %s", (user_id,), fetchone=True)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if not bcrypt.checkpw(current_password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+        return jsonify({'error': 'Current password does not match'}), 400
+
+    salt = bcrypt.gensalt()
+    new_hash = bcrypt.hashpw(new_password.encode('utf-8'), salt).decode('utf-8')
+    execute_query("UPDATE users SET password_hash = %s WHERE user_id = %s", (new_hash, user_id), commit=True)
+
+    return jsonify({'message': 'Password changed successfully'}), 200
+
 @auth_bp.route('/login-logs', methods=['GET'])
 def get_login_logs():
     if 'user_id' not in session:
@@ -188,3 +217,5 @@ def get_login_logs():
             log['logged_at'] = str(log['logged_at'])
             
     return jsonify(logs), 200
+
+

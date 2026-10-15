@@ -24,9 +24,8 @@ def get_whatsapp_logs():
     """
     logs = execute_query(query, (teacher_id,), fetchall=True) or []
     for log in logs:
-        log['created_at'] = str(log['created_at'])
-        if log['sent_at']:
-            log['sent_at'] = str(log['sent_at'])
+        log['created_at'] = str(log['created_at']) if log.get('created_at') else ''
+        log['sent_at'] = str(log['sent_at']) if log.get('sent_at') else None
     return jsonify(logs), 200
 
 import urllib.request
