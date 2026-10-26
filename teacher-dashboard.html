@@ -147,7 +147,7 @@
                     <!-- Professor Profile Dropdown -->
                     <div class="dropdown">
                         <button class="profile-dropdown-btn dropdown-toggle no-arrow" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=120" alt="Prof. John Smith">
+                            <div class="profile-avatar-icon"><i class="fa-solid fa-user"></i></div>
                             <span class="profile-dropdown-name d-none d-sm-inline">Prof. John Smith</span>
                             <i class="fa-solid fa-chevron-down ms-1" style="font-size: 0.7rem; color: var(--text-secondary);"></i>
                         </button>
@@ -265,7 +265,7 @@
                 <div class="row g-3">
                     
                     <!-- Left Section: Major Schedule Table & Core Operations -->
-                    <div class="col-xl-8 col-lg-7">
+                    <div class="col-xl-8 col-lg-7 left-column-content">
                         
                         <!-- Today's Schedule Table (Major Section) -->
                         <div class="dashboard-card">
@@ -298,8 +298,30 @@
                             </div>
                         </div>
 
+                        <!-- Mobile-Only: Next Lecture Card (shown before Recent Attendance on small screens) -->
+                        <div class="dashboard-card next-lecture-card d-lg-none next-lecture-mobile mobile-order-next-lecture">
+                            <div class="next-lecture-header">
+                                <span class="next-lecture-label"><i class="fa-regular fa-bell me-1"></i> Next Lecture</span>
+                                <span class="status-badge status-upcoming next-lecture-badge-sync">Scheduled</span>
+                            </div>
+                            <div class="next-lecture-subject next-lecture-subject-sync">Software Engineering</div>
+                            <div class="next-lecture-details">
+                                <span><i class="fa-regular fa-clock"></i> <span class="next-lecture-time-sync">02:00 PM – 03:00 PM</span></span>
+                                <span><i class="fa-solid fa-chalkboard"></i> <span class="next-lecture-class-sync">SY Computer A</span></span>
+                                <span><i class="fa-solid fa-location-dot"></i> <span class="next-lecture-room-sync">Room 204</span></span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn-primary-custom flex-grow-1" onclick="simulateNav('Mark Attendance')">
+                                    <i class="fa-solid fa-clipboard-user me-1"></i> Mark Attendance
+                                </button>
+                                <button class="btn-outline-custom" onclick="simulateNav('My Classes')" title="Class details">
+                                    View Class
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Section: Attendance Analytics (Enterprise Deep Navy/Teal Data Display) -->
-                        <div class="dashboard-card">
+                        <div class="dashboard-card mobile-order-analytics">
                             <div class="card-title">
                                 <span><i class="fa-solid fa-chart-line me-2"></i>Attendance Analytics</span>
                                 <span class="text-muted" style="font-size: 12px; font-weight: 400;">Current Academic Term</span>
@@ -363,7 +385,7 @@
                         </div>
 
                         <!-- Row: Recent Attendance & Requires Attention -->
-                        <div class="row g-3">
+                        <div class="row g-3 mobile-order-recent">
                             
                             <!-- Recent Attendance Table (Live Filter Target) -->
                             <div class="col-md-7">
@@ -427,7 +449,7 @@
                     <div class="col-xl-4 col-lg-5">
                         
                         <!-- Widget 1: NEXT LECTURE (Replaces old large clock) -->
-                        <div class="dashboard-card next-lecture-card">
+                        <div class="dashboard-card next-lecture-card d-none d-lg-block">
                             <div class="next-lecture-header">
                                 <span class="next-lecture-label"><i class="fa-regular fa-bell me-1"></i> Next Lecture</span>
                                 <span class="status-badge status-upcoming" id="nextLectureBadge">Scheduled</span>
@@ -653,10 +675,6 @@
                             </label>
                             <select id="historyLectureSelect" class="form-select form-select-sm">
                                 <option value="ALL">All Lectures</option>
-                                <option value="DS">Data Structures - SY Computer A</option>
-                                <option value="SE">Software Engineering - SY Computer A</option>
-                                <option value="OS">Operating Systems - TY IT B</option>
-                                <option value="ML">Machine Learning - Final Year CS</option>
                             </select>
                         </div>
 
@@ -910,15 +928,6 @@
                                 <input class="form-check-input" type="checkbox" id="settingsAbsentOnlyAlert" style="cursor: pointer; width: 2.5em; height: 1.25em;">
                             </div>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background-color: var(--bg-hover);">
-                            <div>
-                                <div class="fw-medium" style="font-size: 13px;"><i class="fa-solid fa-message text-primary me-2"></i>SMS Fallback Notification</div>
-                                <div class="text-muted" style="font-size: 11px;">Send standard SMS if WhatsApp message cannot be delivered</div>
-                            </div>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="settingsSmsFallback" style="cursor: pointer; width: 2.5em; height: 1.25em;">
-                            </div>
-                        </div>
                         <div class="p-2 rounded" style="background-color: var(--bg-hover);">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
@@ -928,45 +937,6 @@
                                 <span class="badge" id="thresholdValue" style="background-color: var(--pending-light); color: var(--pending); font-size: 12px; font-weight: 600;">75%</span>
                             </div>
                             <input type="range" class="form-range" id="settingsThreshold" min="50" max="95" step="5" value="75" style="accent-color: var(--primary);">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- AI Chatbot & Voice Assistant Preferences -->
-                <div class="dashboard-card mb-3">
-                    <div class="card-title">
-                        <span><i class="fa-solid fa-robot me-2"></i>AI Assistant & Voice Preferences</span>
-                        <span class="badge" style="background-color: var(--primary-light); color: var(--primary); font-size: 11px;">Smart Assistant</span>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-4 col-sm-6">
-                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Speech-to-Text Language</label>
-                            <select class="form-select form-select-sm" id="settingsVoiceLang">
-                                <option value="en-IN" selected>English (India) — en-IN</option>
-                                <option value="en-US">English (US) — en-US</option>
-                                <option value="hi-IN">Hindi (India) — hi-IN</option>
-                            </select>
-                            <div class="text-muted mt-1" style="font-size: 10.5px;">Language for microphone dictation in chatbot</div>
-                        </div>
-                        <div class="col-md-4 col-sm-6">
-                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Text-to-Speech (Voice Output)</label>
-                            <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background-color: var(--bg-hover); height: 38px;">
-                                <span style="font-size: 12px;">Speak Responses Aloud</span>
-                                <div class="form-check form-switch mb-0">
-                                    <input class="form-check-input" type="checkbox" id="settingsChatbotSpeech" style="cursor: pointer;">
-                                </div>
-                            </div>
-                            <div class="text-muted mt-1" style="font-size: 10.5px;">Audibly reads AI chatbot replies</div>
-                        </div>
-                        <div class="col-md-4 col-sm-12">
-                            <label class="form-label fw-medium text-secondary" style="font-size: 12px;">Chatbot Audio Chimes</label>
-                            <div class="d-flex align-items-center justify-content-between p-2 rounded" style="background-color: var(--bg-hover); height: 38px;">
-                                <span style="font-size: 12px;">Sound on Send / Receive</span>
-                                <div class="form-check form-switch mb-0">
-                                    <input class="form-check-input" type="checkbox" id="settingsChatbotSound" checked style="cursor: pointer;">
-                                </div>
-                            </div>
-                            <div class="text-muted mt-1" style="font-size: 10.5px;">Plays soft confirmation chimes</div>
                         </div>
                     </div>
                 </div>

@@ -174,20 +174,22 @@ a {
 }
 
 .logo-icon {
-    width: 36px;
-    height: 36px;
-    background-color: var(--primary-dark);
-    border-radius: var(--radius-md);
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #12343B 0%, #2C7A7B 100%);
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #FFFFFF;
     font-size: 1.1rem;
     flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(15, 76, 92, 0.40);
 }
 
 [data-bs-theme="dark"] .logo-icon {
-    background-color: var(--primary);
+    background: linear-gradient(135deg, #0F4C5C 0%, #2C7A7B 100%);
+    box-shadow: 0 3px 12px rgba(44, 122, 123, 0.45);
     color: #FFFFFF;
 }
 
@@ -466,11 +468,24 @@ a {
     border-color: var(--text-muted);
 }
 
-.profile-dropdown-btn img {
-    width: 28px;
-    height: 28px;
+.profile-avatar-icon {
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    object-fit: cover;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent-teal) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(44, 122, 123, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-dropdown-btn:hover .profile-avatar-icon {
+    transform: scale(1.08);
+    box-shadow: 0 3px 12px rgba(44, 122, 123, 0.5);
 }
 
 .profile-dropdown-name {
@@ -1022,6 +1037,8 @@ a {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .quick-action-card:hover {
@@ -1047,6 +1064,8 @@ a {
 .quick-action-body {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .quick-action-title {
@@ -1054,6 +1073,9 @@ a {
     font-weight: 600;
     color: var(--text-primary);
     margin: 0 0 0.15rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .quick-action-desc {
@@ -1061,6 +1083,10 @@ a {
     color: var(--text-secondary);
     margin: 0;
     line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 /* --- Section: Attendance Analytics --- */
@@ -1435,6 +1461,27 @@ a {
 }
 
 @media (max-width: 767.98px) {
+    #section-MyClasses .dashboard-card {
+        padding: 0.9rem;
+    }
+    #section-MyClasses .card-title {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    #section-MyClasses .card-title > div {
+        width: 100%;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem !important;
+    }
+    #section-MyClasses .card-title > div button {
+        width: 100%;
+        white-space: nowrap;
+    }
+    #section-MyClasses .custom-table td:last-child {
+        justify-content: space-between;
+    }
     .stat-card-grid {
         grid-template-columns: 1fr;
     }
@@ -1455,6 +1502,103 @@ a {
         flex-direction: column;
         gap: 0.35rem;
         text-align: center;
+    }
+
+    /* ===== Mobile Card Layout for Tables ===== */
+
+    /* Hide table headers on mobile */
+    .custom-table thead {
+        display: none;
+    }
+
+    .custom-table,
+    .custom-table tbody,
+    .custom-table tr,
+    .custom-table td {
+        display: block;
+        width: 100%;
+    }
+
+    /* Each row becomes a card */
+    .custom-table tbody tr {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.65rem;
+        box-shadow: var(--shadow-xs);
+        position: relative;
+    }
+
+    .custom-table tbody tr:last-child {
+        margin-bottom: 0;
+    }
+
+    .custom-table tbody tr:hover td {
+        background-color: transparent;
+    }
+
+    /* Each cell becomes a row with a label */
+    .custom-table td {
+        padding: 0.3rem 0;
+        border-bottom: none;
+        font-size: 0.825rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        text-align: right;
+    }
+
+    .custom-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 0.725rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        flex-shrink: 0;
+        text-align: left;
+        min-width: 70px;
+    }
+
+    .custom-table td.text-end {
+        text-align: right;
+        justify-content: flex-end;
+    }
+
+    /* Remove inner border from table-responsive wrapper on mobile */
+    .table-responsive {
+        border: none;
+        border-radius: 0;
+        overflow: visible;
+    }
+
+    /* Status and Action full visibility */
+    .custom-table td:last-child {
+        padding-top: 0.6rem;
+        margin-top: 0.35rem;
+        border-top: 1px solid var(--border-color);
+        justify-content: flex-end;
+    }
+
+    /* Adjust button sizing on mobile */
+    .custom-table .btn-primary-custom,
+    .custom-table .btn-outline-custom {
+        font-size: 0.775rem;
+        padding: 0.4rem 0.85rem;
+        width: auto;
+    }
+
+    /* Status button groups stack better on mobile */
+    .status-btn-group {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .status-btn {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.55rem;
     }
 }
 

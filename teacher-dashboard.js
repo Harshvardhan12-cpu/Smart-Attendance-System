@@ -203,13 +203,108 @@ async function loadDashboardStats() {
         const pendingEl = document.getElementById('statPendingAttendance');
         if (pendingEl) pendingEl.textContent = `${stats.pending_attendance} Classes`;
 
-        // Fetch today's timetable, recent attendance, and whatsapp logs
+        // Fetch today's timetable, recent attendance, whatsapp logs, and analytics
         loadTodaySchedule();
         loadRecentAttendance();
         loadWhatsappLogs();
         loadNotifications();
+        loadAttendanceAnalytics();
     } catch (e) {
         console.error("Dashboard stats error:", e);
+    }
+}
+
+async function loadAttendanceAnalytics() {
+    try {
+        const res = await fetch('/api/reports/attendance-analytics');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // --- Widget 1: Weekly Attendance Trend ---
+        const trendContainer = document.getElementById('analyticsWeeklyTrend');
+        if (trendContainer && data.weekly_trend) {
+            trendContainer.innerHTML = '';
+            if (data.weekly_trend.length === 0) {
+                trendContainer.innerHTML = '<div class="text-center w-100 py-3 text-muted" style="font-size: 11px;">No weekly trend data available.</div>';
+            } else {
+                const barsHtml = data.weekly_trend.map(day => {
+                    const height = day.percentage > 0 ? Math.max(day.percentage, 8) : 4;
+                    const barColor = day.is_future ? 'var(--border-color)' : (day.is_today ? 'var(--primary)' : 'var(--present)');
+                    const labelColor = day.is_today ? 'var(--primary)' : 'var(--text-secondary)';
+                    const fontWeight = day.is_today ? '700' : '500';
+                    const valueText = day.is_future ? '—' : (day.has_data ? day.percentage + '%' : '0%');
+                    return `
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1;">
+                            <span style="font-size: 10px; font-weight: 600; color: ${day.is_future ? 'var(--text-secondary)' : (day.percentage >= 75 ? 'var(--present)' : 'var(--absent)')}">${valueText}</span>
+                            <div style="width: 100%; max-width: 38px; height: 80px; background: var(--bg-secondary); border-radius: 6px; display: flex; align-items: flex-end; overflow: hidden;">
+                                <div style="width: 100%; height: ${height}%; background: ${barColor}; border-radius: 6px; transition: height 0.6s ease;"></div>
+                            </div>
+                            <span style="font-size: 10px; font-weight: ${fontWeight}; color: ${labelColor};">${day.label}</span>
+                        </div>
+                    `;
+                }).join('');
+                trendContainer.innerHTML = `<div style="display: flex; align-items: flex-end; gap: 6px; width: 100%; padding: 8px 0;">${barsHtml}</div>`;
+            }
+        }
+
+        // --- Widget 2: Present vs Absent Distribution ---
+        if (data.present_absent) {
+            const pa = data.present_absent;
+            const avgEl = document.getElementById('analyticsPresentAbsentAvg');
+            if (avgEl) avgEl.textContent = pa.avg_pct > 0 ? pa.avg_pct + '% Avg' : '--% Avg';
+
+            const presentText = document.getElementById('analyticsTotalPresentText');
+            if (presentText) presentText.textContent = pa.present_count + ' Students';
+
+            const absentText = document.getElementById('analyticsTotalAbsentText');
+            if (absentText) absentText.textContent = pa.absent_count + ' Students';
+
+            const fillPresent = document.getElementById('analyticsFillPresent');
+            if (fillPresent) fillPresent.style.width = pa.present_pct + '%';
+
+            const fillAbsent = document.getElementById('analyticsFillAbsent');
+            if (fillAbsent) fillAbsent.style.width = pa.absent_pct + '%';
+
+            const legendPresent = document.getElementById('analyticsLegendPresent');
+            if (legendPresent) legendPresent.textContent = 'Present (' + pa.present_pct + '%)';
+
+            const legendAbsent = document.getElementById('analyticsLegendAbsent');
+            if (legendAbsent) legendAbsent.textContent = 'Absent (' + pa.absent_pct + '%)';
+        }
+
+        // --- Widget 3: Class-wise Attendance ---
+        const classList = document.getElementById('analyticsClassList');
+        const classCount = document.getElementById('analyticsClassCount');
+        if (classList && data.class_wise) {
+            if (classCount) classCount.textContent = data.class_wise.length + ' Batches';
+
+            classList.innerHTML = '';
+            if (data.class_wise.length === 0) {
+                classList.innerHTML = '<div class="text-center w-100 py-3 text-muted" style="font-size: 11px;">No class data available yet.</div>';
+            } else {
+                data.class_wise.forEach(cls => {
+                    const rate = cls.attendance_rate;
+                    const barColor = rate >= 75 ? 'var(--present)' : (rate >= 50 ? 'var(--pending)' : 'var(--absent)');
+                    classList.innerHTML += `
+                        <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
+                            <span style="font-size: 12px; font-weight: 600; color: var(--text-primary); min-width: 100px; white-space: nowrap;">${cls.section_name}</span>
+                            <div style="flex: 1; height: 7px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden;">
+                                <div style="height: 100%; width: ${rate}%; background: ${barColor}; border-radius: 4px; transition: width 0.6s ease;"></div>
+                            </div>
+                            <span style="font-size: 11px; font-weight: 700; color: ${barColor}; min-width: 42px; text-align: right;">${rate}%</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+    } catch (e) {
+        console.error('Error loading attendance analytics:', e);
+        // Show friendly error states
+        const trendContainer = document.getElementById('analyticsWeeklyTrend');
+        if (trendContainer) trendContainer.innerHTML = '<div class="text-center w-100 py-3 text-muted" style="font-size: 11px;"><i class="fa-solid fa-exclamation-circle me-1"></i> Could not load trend data.</div>';
+        const classList = document.getElementById('analyticsClassList');
+        if (classList) classList.innerHTML = '<div class="text-center w-100 py-3 text-muted" style="font-size: 11px;"><i class="fa-solid fa-exclamation-circle me-1"></i> Could not load class data.</div>';
     }
 }
 
@@ -391,12 +486,12 @@ async function loadTodaySchedule() {
 
             tbody.innerHTML += `
                 <tr>
-                    <td class="fw-semibold">${t.start_time_str || t.start_time}</td>
-                    <td class="fw-medium">${t.subject_name}</td>
-                    <td>${t.class_name}</td>
-                    <td>${t.room_number || 'Room 101'}</td>
-                    <td><span class="status-badge ${badgeClass}">${badgeContent}</span></td>
-                    <td class="text-end">
+                    <td data-label="Time" class="fw-semibold">${t.start_time_str || t.start_time}</td>
+                    <td data-label="Subject" class="fw-medium">${t.subject_name}</td>
+                    <td data-label="Class">${t.class_name}</td>
+                    <td data-label="Room">${t.room_number || 'Room 101'}</td>
+                    <td data-label="Status"><span class="status-badge ${badgeClass}">${badgeContent}</span></td>
+                    <td data-label="Action" class="text-end">
                         <button class="${t.is_marked ? 'btn-outline-custom' : 'btn-primary-custom'}" onclick="selectAndMarkLecture(${t.timetable_id})">
                             <i class="fa-solid ${t.is_marked ? 'fa-pen-to-square' : 'fa-clipboard-user'} me-1"></i> ${actionBtnText}
                         </button>
@@ -415,21 +510,24 @@ async function loadTodaySchedule() {
 }
 
 function updateNextLectureWidget(lecture) {
-    const card = document.querySelector('.next-lecture-card');
-    if (!card) return;
+    const cards = document.querySelectorAll('.next-lecture-card');
+    if (!cards.length) return;
 
-    if (!lecture) {
-        card.querySelector('.next-lecture-subject').textContent = 'No Lectures Today';
-        card.querySelector('.next-lecture-details').innerHTML = `<span><i class="fa-regular fa-clock"></i> All sessions clear</span>`;
-        return;
-    }
+    cards.forEach(card => {
+        if (!lecture) {
+            card.querySelector('.next-lecture-subject, .next-lecture-subject-sync').textContent = 'No Lectures Today';
+            card.querySelector('.next-lecture-details').innerHTML = `<span><i class="fa-regular fa-clock"></i> All sessions clear</span>`;
+            return;
+        }
 
-    card.querySelector('.next-lecture-subject').textContent = lecture.subject_name;
-    card.querySelector('.next-lecture-details').innerHTML = `
-        <span><i class="fa-regular fa-clock"></i> ${lecture.start_time_str || lecture.start_time} – ${lecture.end_time_str || lecture.end_time}</span>
-        <span><i class="fa-solid fa-chalkboard"></i> ${lecture.class_name}</span>
-        <span><i class="fa-solid fa-location-dot"></i> ${lecture.room_number || 'Room 101'}</span>
-    `;
+        const subjectEl = card.querySelector('.next-lecture-subject') || card.querySelector('.next-lecture-subject-sync');
+        if (subjectEl) subjectEl.textContent = lecture.subject_name;
+        card.querySelector('.next-lecture-details').innerHTML = `
+            <span><i class="fa-regular fa-clock"></i> ${lecture.start_time_str || lecture.start_time} – ${lecture.end_time_str || lecture.end_time}</span>
+            <span><i class="fa-solid fa-chalkboard"></i> ${lecture.class_name}</span>
+            <span><i class="fa-solid fa-location-dot"></i> ${lecture.room_number || 'Room 101'}</span>
+        `;
+    });
 }
 
 async function loadRecentAttendance() {
@@ -466,11 +564,11 @@ async function loadRecentAttendance() {
             let badgeClass = r.status === 'present' ? 'status-present' : r.status === 'absent' ? 'status-absent' : 'status-late';
             tbody.innerHTML += `
                 <tr>
-                    <td class="fw-semibold">${r.roll_number}</td>
-                    <td class="fw-medium">${r.student_name}</td>
-                    <td>${r.class_name}</td>
-                    <td><span class="status-badge ${badgeClass}">${r.status}</span></td>
-                    <td class="text-end">
+                    <td data-label="Roll" class="fw-semibold">${r.roll_number}</td>
+                    <td data-label="Student" class="fw-medium">${r.student_name}</td>
+                    <td data-label="Class">${r.class_name}</td>
+                    <td data-label="Status"><span class="status-badge ${badgeClass}">${r.status}</span></td>
+                    <td data-label="Action" class="text-end">
                         <button class="btn-outline-custom" onclick="viewStudentDetails('${r.student_name}', '${r.roll_number}')">Details</button>
                     </td>
                 </tr>
@@ -523,10 +621,10 @@ async function loadMyClasses() {
         classes.forEach(c => {
             tbody.innerHTML += `
                 <tr>
-                    <td class="fw-medium">${c.section_name}</td>
-                    <td>${c.subject_name} <span class="text-muted" style="font-size: 11px;">(${c.subject_code})</span></td>
-                    <td>Sem ${c.semester || 1}</td>
-                    <td>${c.student_count || 0} Students</td>
+                    <td data-label="Class Name" class="fw-medium">${c.section_name}</td>
+                    <td data-label="Subject">${c.subject_name} <span class="text-muted" style="font-size: 11px;">(${c.subject_code})</span></td>
+                    <td data-label="Semester">Sem ${c.semester || 1}</td>
+                    <td data-label="Students">${c.student_count || 0} Students</td>
                 </tr>
             `;
 
@@ -683,9 +781,9 @@ async function fetchStudentsForAttendance() {
 
             tbody.innerHTML += `
                 <tr>
-                    <td class="fw-semibold text-secondary" style="font-size: 13px;">${s.roll_number}</td>
-                    <td class="fw-medium">${s.full_name}</td>
-                    <td>
+                    <td data-label="Roll No" class="fw-semibold text-secondary" style="font-size: 13px;">${s.roll_number}</td>
+                    <td data-label="Name" class="fw-medium">${s.full_name}</td>
+                    <td data-label="Status">
                         <div class="status-btn-group" data-studentid="${s.student_id}" data-studentname="${s.full_name}" data-roll="${s.roll_number}" data-status="${currentStatus}">
                             <button type="button" class="status-btn btn-present ${isPresent}" onclick="setStudentStatus(this, 'present')">
                                 <i class="fa-solid fa-circle-check"></i> Present
@@ -806,6 +904,34 @@ async function loadAttendanceHistory() {
         dateInput.value = todayStr;
     }
 
+    // Dynamically populate the lecture dropdown from teacher's classes
+    const lectureSelect = document.getElementById('historyLectureSelect');
+    if (lectureSelect) {
+        const currentValue = lectureSelect.value;
+        lectureSelect.innerHTML = '<option value="ALL">All Lectures</option>';
+
+        try {
+            const classRes = await fetch('/api/classes');
+            if (classRes.ok) {
+                const classes = await classRes.json();
+                if (classes && classes.length > 0) {
+                    classes.forEach(cls => {
+                        const label = `${cls.subject_name} - ${cls.section_name}`;
+                        const val = `${cls.section_name}||${cls.subject_name}`;
+                        lectureSelect.innerHTML += `<option value="${val}">${label}</option>`;
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Error loading classes for history filter:', e);
+        }
+
+        // Restore previous selection if it still exists
+        if (currentValue && lectureSelect.querySelector(`option[value="${currentValue}"]`)) {
+            lectureSelect.value = currentValue;
+        }
+    }
+
     const tbody = document.querySelector('#attendanceHistoryTableData tbody');
     if (tbody) {
         tbody.innerHTML = `
@@ -831,11 +957,22 @@ async function loadAttendanceHistory() {
 
 function filterAttendanceHistory() {
     const selectedDate = document.getElementById('historyDateInput').value;
+    const selectedLecture = document.getElementById('historyLectureSelect').value;
     const selectedStatus = document.getElementById('historyStatusSelect').value;
     let records = window.attendanceHistoryCache || [];
 
     if (selectedDate) {
         records = records.filter(r => r.attendance_date === selectedDate);
+    }
+
+    // Filter by selected class + subject
+    if (selectedLecture && selectedLecture !== 'ALL') {
+        const parts = selectedLecture.split('||');
+        if (parts.length === 2) {
+            const filterClassName = parts[0];
+            const filterSubjectName = parts[1];
+            records = records.filter(r => r.class_name === filterClassName && r.subject_name === filterSubjectName);
+        }
     }
 
     if (selectedStatus && selectedStatus !== 'ALL') {
@@ -878,11 +1015,11 @@ function filterAttendanceHistory() {
         let badgeClass = row.status === 'present' ? 'status-present' : row.status === 'absent' ? 'status-absent' : 'status-late';
         tbody.innerHTML += `
             <tr>
-                <td class="fw-semibold text-secondary" style="font-size: 12px;">${row.attendance_date}</td>
-                <td><span class="fw-medium">${row.class_name}</span></td>
-                <td>${row.subject_name}</td>
-                <td class="fw-medium">${row.student_name} <span class="text-muted" style="font-size: 11px;">(Roll: ${row.roll_number})</span></td>
-                <td><span class="status-badge ${badgeClass}">${row.status}</span></td>
+                <td data-label="Date" class="fw-semibold text-secondary" style="font-size: 12px;">${row.attendance_date}</td>
+                <td data-label="Class"><span class="fw-medium">${row.class_name}</span></td>
+                <td data-label="Subject">${row.subject_name}</td>
+                <td data-label="Student" class="fw-medium">${row.student_name} <span class="text-muted" style="font-size: 11px;">(Roll: ${row.roll_number})</span></td>
+                <td data-label="Status"><span class="status-badge ${badgeClass}">${row.status}</span></td>
             </tr>
         `;
     });
@@ -1289,24 +1426,13 @@ function loadSettings() {
     // Notification elements
     const whatsappToggle = document.getElementById('settingsWhatsappEnabled');
     const absentOnlyToggle = document.getElementById('settingsAbsentOnlyAlert');
-    const smsFallbackToggle = document.getElementById('settingsSmsFallback');
     const thresholdSlider = document.getElementById('settingsThreshold');
     const thresholdLabel = document.getElementById('thresholdValue');
 
     if (whatsappToggle && saved.whatsappEnabled !== undefined) whatsappToggle.checked = saved.whatsappEnabled;
     if (absentOnlyToggle && saved.absentOnlyAlert !== undefined) absentOnlyToggle.checked = saved.absentOnlyAlert;
-    if (smsFallbackToggle && saved.smsFallback !== undefined) smsFallbackToggle.checked = saved.smsFallback;
     if (thresholdSlider && saved.threshold !== undefined) { thresholdSlider.value = saved.threshold; }
     if (thresholdLabel && thresholdSlider) thresholdLabel.textContent = `${thresholdSlider.value}%`;
-
-    // AI Chatbot preferences
-    const voiceLang = document.getElementById('settingsVoiceLang');
-    const chatbotSpeech = document.getElementById('settingsChatbotSpeech');
-    const chatbotSound = document.getElementById('settingsChatbotSound');
-
-    if (voiceLang && saved.voiceLang) voiceLang.value = saved.voiceLang;
-    if (chatbotSpeech && saved.chatbotSpeech !== undefined) chatbotSpeech.checked = saved.chatbotSpeech;
-    if (chatbotSound && saved.chatbotSound !== undefined) chatbotSound.checked = saved.chatbotSound;
 
     // Report preferences
     const defaultExportFormat = document.getElementById('settingsDefaultExportFormat');
@@ -1349,9 +1475,6 @@ function loadSettings() {
 
     // Store global references
     window._erpSettings = saved;
-    window._chatbotVoiceLang = saved.voiceLang || 'en-IN';
-    window._chatbotSpeechEnabled = saved.chatbotSpeech || false;
-    window._chatbotSoundEnabled = saved.chatbotSound !== false;
 
     // Initialize keyboard shortcuts if not done
     initKeyboardShortcuts();
@@ -1376,13 +1499,7 @@ function saveSettings() {
         // Notifications
         whatsappEnabled: document.getElementById('settingsWhatsappEnabled')?.checked ?? true,
         absentOnlyAlert: document.getElementById('settingsAbsentOnlyAlert')?.checked ?? false,
-        smsFallback: document.getElementById('settingsSmsFallback')?.checked ?? false,
         threshold: document.getElementById('settingsThreshold')?.value ?? '75',
-
-        // AI Chatbot
-        voiceLang: document.getElementById('settingsVoiceLang')?.value ?? 'en-IN',
-        chatbotSpeech: document.getElementById('settingsChatbotSpeech')?.checked ?? false,
-        chatbotSound: document.getElementById('settingsChatbotSound')?.checked ?? true,
 
         // Reports
         defaultExportFormat: document.getElementById('settingsDefaultExportFormat')?.value ?? 'pdf',
@@ -1403,9 +1520,6 @@ function saveSettings() {
 
     localStorage.setItem('erpSettings', JSON.stringify(settings));
     window._erpSettings = settings;
-    window._chatbotVoiceLang = settings.voiceLang;
-    window._chatbotSpeechEnabled = settings.chatbotSpeech;
-    window._chatbotSoundEnabled = settings.chatbotSound;
 
     showToast('All ERP preferences saved successfully!', 'success');
 }
